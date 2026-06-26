@@ -1,0 +1,258 @@
+openapi: 3.0.3
+info:
+  title: CADA Brand Partnerships — Mobile API
+  version: 1.0.0
+  description: |
+    APIs consumed by the CADA iOS app for brand challenge discovery,
+    enrollment, habit attribution, and (Phase 5) QR rewards.
+
+servers:
+  - url: https://api.cada.app/v1
+    description: Production
+  - url: http://localhost:3000/api/v1
+    description: Local dev
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: CADA app user JWT (not brand staff)
+
+  schemas:
+    BrandSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        logo_url: { type: string, nullable: true }
+        category: { type: string }
+
+    AvailableChallenge:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        habit_type:
+          type: string
+          enum: [gym, text_friend, call_family, journal, stretch, run, custom]
+        offer_headline: { type: string }
+        offer_code: { type: string, nullable: true }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time, nullable: true }
+        brand: { $ref: '#/components/schemas/BrandSummary' }
+
+    Enrollment:
+      type: object
+      properties:
+        enrollment_id: { type: string, format: uuid }
+        challenge_id: { type: string, format: uuid }
+        status:
+          type: string
+          enum: [active, completed, dropped]
+        enrolled_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time, nullable: true }
+        completion_count: { type: integer }
+        already_enrolled: { type: boolean }
+
+    HabitCompletedRequest:
+      type: object
+      required: [habit_type, completed_at, source_event_id]
+      properties:
+        habit_type:
+          type: string
+          enum: [gym, text_friend, call_family, journal, stretch, run, custom]
+        completed_at: { type: string, format: date-time }
+        source_event_id: { type: string }
+        challenge_id: { type: string, format: uuid }
+
+    IssuedReward:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        enrollment_id: { type: string, format: uuid }
+        qr_url: { type: string }
+        expires_at: { type: string, format: date-time }
+        status: { type: string, enum: [issued, redeemed, expired, revoked] }
+
+    HabitCompletedResponse:
+      type: object
+      properties:
+        attributed: { type: boolean }
+        idempotent_replay: { type: boolean }
+        reason: { type: string }
+        enrollment_id: { type: string, format: uuid }
+        enrollment_status: { type: string }
+        completion_count: { type: integer }
+        reward: { $ref: '#/components/schemas/IssuedReward' }
+
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+
+paths:
+  /challenges/available:
+    get:
+      summary: List active challenges
+      operationId: listAvailableChallenges
+      tags: [Challenges]
+      responses:
+        '200':
+          description: Active challenges
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challenges:
+                    type: array
+                    items: { $ref: '#/components/schemas/AvailableChallenge' }
+                  meta:
+                    type: object
+                    properties:
+                      region: { type: string }
+                      count: { type: integer }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /challenges/{id}/enroll:
+    post:
+      summary: Enroll in a challenge
+      operationId: enrollChallenge
+      tags: [Challenges]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Enrolled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Enrollment' }
+        '200':
+          description: Already enrolled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Enrollment' }
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '410':
+          description: Challenge unavailable
+
+  /users/me/challenges:
+    get:
+      summary: My enrollments and progress
+      operationId: listMyChallenges
+      tags: [Users]
+      responses:
+        '200':
+          description: Enrollments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enrollments:
+                    type: array
+                    items:
+                      type: object
+        '401':
+          description: Unauthorized
+
+  /users/me/rewards/{id}:
+    get:
+      summary: Get reward details and QR URL
+      operationId: getMyReward
+      tags: [Users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Reward with QR payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { type: string, enum: [issued, redeemed, expired, revoked] }
+                  qr_url: { type: string, nullable: true }
+                  qr_payload: { type: string, nullable: true }
+                  expires_at: { type: string, format: date-time }
+                  brand_name: { type: string }
+                  challenge_title: { type: string }
+                  offer_headline: { type: string }
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '429':
+          description: Rate limited
+
+  /redeem:
+    post:
+      summary: Redeem QR token (brand staff)
+      operationId: redeemQr
+      tags: [Redeem]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200':
+          description: Redeemed
+        '404':
+          description: invalid_token
+        '409':
+          description: already_redeemed
+        '410':
+          description: expired or revoked
+        '403':
+          description: wrong_brand
+
+  /events/habit-completed:
+    post:
+      summary: Report habit knock-out for brand attribution
+      operationId: habitCompleted
+      tags: [Events]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HabitCompletedRequest' }
+            example:
+              habit_type: stretch
+              completed_at: '2026-06-26T12:05:00Z'
+              source_event_id: app-knockout-abc123
+      responses:
+        '200':
+          description: Processed (attributed or not)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HabitCompletedResponse' }
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized

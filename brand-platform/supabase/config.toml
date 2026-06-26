@@ -1,0 +1,21 @@
+# For local Supabase CLI (optional)
+project_id = "cada-brand-platform"
+
+[db]
+port = 54322
+major_version = 16
+
+[api]
+enabled = false
+
+[studio]
+enabled = false
+
+[inbucket]
+enabled = false
+
+[storage]
+enabled = false
+
+[auth]
+enabled = false

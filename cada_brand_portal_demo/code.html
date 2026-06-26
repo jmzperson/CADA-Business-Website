@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CADA Partners — Demo</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            teal: '#1CB0C8', 'teal-dark': '#1899B0', 'teal-light': '#DDF8FC',
+            ink: '#3C3C3C', 'ink-muted': '#777777',
+            surface: { subtle: '#F7F8FA', border: '#E5E7EB' },
+            coral: '#FF9600',
+          },
+          fontFamily: { display: ['Nunito', 'sans-serif'], body: ['DM Sans', 'sans-serif'] },
+          boxShadow: { card: '0 1px 3px rgba(0,0,0,.06)' },
+        },
+      },
+    };
+  </script>
+  <style>
+    .sym { font-family: 'Material Symbols Outlined'; font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24; line-height: 1; display: inline-block; vertical-align: middle; }
+    .sym-fill { font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+    .view { display: none !important; }
+    .view.is-visible { display: block !important; }
+    .view.view-flex.is-visible { display: flex !important; }
+    .portal-page { display: none; }
+    .portal-page.is-visible { display: block; }
+    .nav-link.active { background: #DDF8FC; color: #1899B0; }
+    .funnel-bar { transition: width .6s cubic-bezier(.22,1,.36,1); }
+    @keyframes pulse-ring { 0%,100%{opacity:.4} 50%{opacity:1} }
+    .scan-pulse { animation: pulse-ring 2s ease-in-out infinite; }
+    .qr-grid { background-image: linear-gradient(#1CB0C8 2px, transparent 2px), linear-gradient(90deg, #1CB0C8 2px, transparent 2px); background-size: 12px 12px; }
+  </style>
+</head>
+<body class="bg-surface-subtle font-body text-ink antialiased">
+
+<!-- Demo banner -->
+<div class="bg-ink text-white text-center text-xs py-2 px-4 flex flex-wrap items-center justify-center gap-3">
+  <span class="font-semibold">Static demo</span>
+  <span class="opacity-70">No backend — click through flows below</span>
+  <select id="demo-mode" class="rounded border-0 bg-white/15 text-white text-xs py-1 px-2 font-medium" onchange="setDemoMode(this.value)">
+    <option value="onboarding">New brand (onboarding)</option>
+    <option value="metrics">Active brand (metrics)</option>
+  </select>
+  <a href="../cada_partnerships_page/code.html" class="underline opacity-90 hover:opacity-100">← Marketing site</a>
+</div>
+
+<!-- AUTH SCREENS (no shell) -->
+<div id="view-login" class="view view-flex is-visible min-h-[calc(100vh-36px)] flex-col items-center justify-center px-4 py-12">
+  <div class="mb-8 flex justify-center">
+    <div class="inline-flex flex-col items-center text-center">
+      <img src="../images/cada-logo.png" alt="CADA" class="h-12 w-auto" width="377" height="120" />
+      <div class="mt-1 text-[10px] font-extrabold uppercase text-ink-muted">Partners</div>
+    </div>
+  </div>
+  <div class="w-full max-w-md rounded-xl border border-surface-border bg-white p-6 shadow-card">
+    <h1 class="font-display text-xl font-semibold">Sign in</h1>
+    <p class="mt-1 text-sm text-ink-muted">Access your brand dashboard</p>
+    <form class="mt-6 space-y-4" onsubmit="return enterPortal(event)">
+      <div>
+        <label class="block text-sm font-medium mb-1.5">Email</label>
+        <input type="email" value="admin@studioflow.example" class="w-full rounded-lg border border-surface-border px-3.5 py-2.5 text-sm" readonly>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1.5">Password</label>
+        <input type="password" value="••••••••" class="w-full rounded-lg border border-surface-border px-3.5 py-2.5 text-sm" readonly>
+      </div>
+      <button type="submit" class="w-full rounded-lg bg-teal py-2.5 text-sm font-semibold text-white hover:bg-teal-dark cursor-pointer">Sign in</button>
+    </form>
+    <p class="mt-4 text-center">
+      <button type="button" class="text-xs text-ink-muted underline hover:text-teal" onclick="enterPortal()">Skip to dashboard →</button>
+    </p>
+    <p class="mt-6 text-center text-sm text-ink-muted">
+      New partner? <button type="button" class="font-medium text-teal hover:underline" onclick="showAuth('signup')">Register</button>
+    </p>
+  </div>
+</div>
+
+<div id="view-signup" class="view view-flex min-h-[calc(100vh-36px)] flex-col items-center justify-center px-4 py-12">
+  <div class="mb-8 flex justify-center">
+    <div class="inline-flex flex-col items-center text-center">
+      <img src="../images/cada-logo.png" alt="CADA" class="h-12 w-auto" width="377" height="120" />
+      <div class="mt-1 text-[10px] font-extrabold uppercase text-ink-muted">Partners</div>
+    </div>
+  </div>
+  <div class="w-full max-w-md rounded-xl border border-surface-border bg-white p-6 shadow-card">
+    <h1 class="font-display text-xl font-semibold">Partner with CADA</h1>
+    <p class="mt-1 text-sm text-ink-muted">Create your brand account</p>
+    <form class="mt-6 space-y-4" onsubmit="return enterPortal(event, 'onboarding')">
+      <div>
+        <label class="block text-sm font-medium mb-1.5">Business name</label>
+        <input type="text" value="Studio Flow Yoga" class="w-full rounded-lg border border-surface-border px-3.5 py-2.5 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1.5">Email</label>
+        <input type="email" value="you@studioflow.example" class="w-full rounded-lg border border-surface-border px-3.5 py-2.5 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1.5">Category</label>
+        <select class="w-full rounded-lg border border-surface-border px-3.5 py-2.5 text-sm">
+          <option>Wellness & Spa</option>
+        </select>
+      </div>
+      <button type="submit" class="w-full rounded-lg bg-teal py-2.5 text-sm font-semibold text-white hover:bg-teal-dark">Create account</button>
+    </form>
+    <p class="mt-6 text-center text-sm text-ink-muted">
+      Already have an account? <button type="button" class="font-medium text-teal hover:underline" onclick="showAuth('login')">Sign in</button>
+    </p>
+  </div>
+</div>
+
+<!-- PORTAL SHELL -->
+<div id="view-app" class="view min-h-[calc(100vh-36px)]">
+  <header class="border-b border-surface-border bg-white sticky top-0 z-40">
+    <div class="mx-auto max-w-6xl flex items-center justify-between px-4 py-4 sm:px-6">
+      <div class="flex items-center gap-6">
+        <button type="button" onclick="showScreen('dashboard')" class="inline-flex flex-col items-center text-center">
+          <img src="../images/cada-logo.png" alt="CADA" class="h-7 w-auto" width="220" height="70" />
+          <span class="mt-1 text-[10px] font-extrabold uppercase text-ink-muted">Partners</span>
+        </button>
+        <nav class="hidden sm:flex gap-1">
+          <button type="button" data-nav="dashboard" class="nav-link rounded-lg px-3 py-2 text-sm font-medium text-ink-muted hover:bg-surface-subtle" onclick="showScreen('dashboard')">Overview</button>
+          <button type="button" data-nav="redemptions" class="nav-link rounded-lg px-3 py-2 text-sm font-medium text-ink-muted hover:bg-surface-subtle" onclick="showScreen('redemptions')">Redemptions</button>
+          <button type="button" data-nav="scan" class="nav-link rounded-lg px-3 py-2 text-sm font-medium text-ink-muted hover:bg-surface-subtle" onclick="showScreen('scan')">Scan</button>
+          <button type="button" data-nav="challenges" class="nav-link rounded-lg px-3 py-2 text-sm font-medium text-ink-muted hover:bg-surface-subtle" onclick="showScreen('challenges')">Challenges</button>
+        </nav>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="hidden sm:block text-right">
+          <p class="text-sm font-medium" id="brand-name-header">Studio Flow Yoga</p>
+          <p class="text-xs capitalize text-ink-muted">admin</p>
+        </div>
+        <button type="button" class="rounded-lg border border-surface-border px-3 py-1.5 text-xs font-semibold hover:bg-surface-subtle" onclick="showAuth('login')">Sign out</button>
+      </div>
+    </div>
+    <nav class="flex sm:hidden gap-1 overflow-x-auto border-t border-surface-border px-4 py-2">
+      <button type="button" class="nav-link shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium" onclick="showScreen('dashboard')">Overview</button>
+      <button type="button" class="nav-link shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium" onclick="showScreen('redemptions')">Redemptions</button>
+      <button type="button" class="nav-link shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium" onclick="showScreen('scan')">Scan</button>
+      <button type="button" class="nav-link shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium" onclick="showScreen('challenges')">Challenges</button>
+    </nav>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="portal-page is-visible">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 class="font-display text-2xl font-semibold">Dashboard</h1>
+          <p class="mt-1 text-ink-muted">Partnership metrics for <span id="brand-name-dash">Studio Flow Yoga</span> · Last 30 days</p>
+        </div>
+        <select class="rounded-lg border border-surface-border bg-white px-3 py-2 text-sm" disabled>
+          <option>Last 30 days</option>
+        </select>
+      </div>
+
+      <!-- Onboarding (new brand) -->
+      <div id="panel-onboarding" class="mt-6 rounded-xl border border-teal/25 bg-teal-light/30 p-6">
+        <p class="text-sm font-medium text-teal-dark mb-3">Welcome to CADA Partners! Complete these steps to go live.</p>
+        <h2 class="font-display text-lg font-semibold">Getting started</h2>
+        <ol class="mt-4 space-y-3 text-sm">
+          <li class="flex items-start gap-3">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-surface-border bg-white text-xs font-bold text-ink-muted">1</span>
+            <button type="button" class="font-medium text-teal hover:underline text-left" onclick="showScreen('profile')">Complete your brand profile</button>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-surface-border bg-white text-xs font-bold text-ink-muted">2</span>
+            <button type="button" class="font-medium text-teal hover:underline text-left" onclick="showScreen('challenge-new')">Create your first challenge</button>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-surface-border bg-white text-xs font-bold text-ink-muted">3</span>
+            <span class="text-ink-muted">Publish a challenge</span>
+          </li>
+        </ol>
+        <button type="button" class="mt-5 rounded-lg bg-teal px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-dark" onclick="showScreen('challenge-new')">Create your first challenge</button>
+      </div>
+
+      <!-- Empty metrics -->
+      <div id="panel-empty-metrics" class="mt-8 rounded-xl border border-dashed border-surface-border bg-white p-8 text-center">
+        <h2 class="font-display text-lg font-semibold">No metrics yet</h2>
+        <p class="mx-auto mt-2 max-w-md text-sm text-ink-muted">Metrics appear after you publish a challenge and CADA users start enrolling.</p>
+        <button type="button" class="mt-5 rounded-lg bg-teal px-4 py-2.5 text-sm font-semibold text-white" onclick="showScreen('challenge-new')">Create your first challenge</button>
+      </div>
+
+      <!-- KPI + funnel (active brand) -->
+      <div id="panel-metrics" class="hidden">
+        <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="rounded-xl border border-surface-border bg-white p-6 shadow-card"><p class="text-sm text-ink-muted">Total enrolled</p><p class="mt-2 font-display text-3xl font-semibold tabular-nums">8</p></div>
+          <div class="rounded-xl border border-surface-border bg-white p-6 shadow-card"><p class="text-sm text-ink-muted">Active this week</p><p class="mt-2 font-display text-3xl font-semibold tabular-nums">2</p><p class="mt-1 text-xs text-ink-muted">Completed habit in last 7 days</p></div>
+          <div class="rounded-xl border border-surface-border bg-white p-6 shadow-card"><p class="text-sm text-ink-muted">Completions</p><p class="mt-2 font-display text-3xl font-semibold tabular-nums">5</p></div>
+          <div class="rounded-xl border border-surface-border bg-white p-6 shadow-card"><p class="text-sm text-ink-muted">QR issued</p><p class="mt-2 font-display text-3xl font-semibold tabular-nums">3</p></div>
+          <div class="rounded-xl border border-surface-border bg-white p-6 shadow-card"><p class="text-sm text-ink-muted">QR redeemed</p><p class="mt-2 font-display text-3xl font-semibold tabular-nums">2</p></div>
+          <div class="rounded-xl border border-surface-border bg-white p-6 shadow-card"><p class="text-sm text-ink-muted">Redemption rate</p><p class="mt-2 font-display text-3xl font-semibold tabular-nums">67%</p></div>
+        </div>
+        <div class="mt-6 grid gap-6 lg:grid-cols-2">
+          <div class="rounded-xl border border-surface-border bg-white p-6 shadow-card">
+            <h2 class="font-display text-lg font-semibold">Funnel</h2>
+            <p class="mt-1 text-sm text-ink-muted">Enrolled → completed → QR issued → redeemed</p>
+            <div class="mt-6 space-y-4 text-sm">
+              <div><div class="mb-1 flex justify-between"><span class="font-medium">Enrolled</span><span class="tabular-nums">8</span></div><div class="h-3 rounded-full bg-surface-border overflow-hidden"><div class="funnel-bar h-full rounded-full bg-teal" style="width:100%"></div></div></div>
+              <div><div class="mb-1 flex justify-between"><span class="font-medium">Completed</span><span class="tabular-nums">5 <span class="text-xs text-ink-muted">(63%)</span></span></div><div class="h-3 rounded-full bg-surface-border overflow-hidden"><div class="funnel-bar h-full rounded-full bg-teal" style="width:62.5%"></div></div></div>
+              <div><div class="mb-1 flex justify-between"><span class="font-medium">QR issued</span><span class="tabular-nums">3 <span class="text-xs text-ink-muted">(60%)</span></span></div><div class="h-3 rounded-full bg-surface-border overflow-hidden"><div class="funnel-bar h-full rounded-full bg-teal" style="width:37.5%"></div></div></div>
+              <div><div class="mb-1 flex justify-between"><span class="font-medium">Redeemed</span><span class="tabular-nums">2 <span class="text-xs text-ink-muted">(67%)</span></span></div><div class="h-3 rounded-full bg-surface-border overflow-hidden"><div class="funnel-bar h-full rounded-full bg-teal" style="width:25%"></div></div></div>
+            </div>
+          </div>
+          <div class="rounded-xl border border-surface-border bg-white p-6 shadow-card">
+            <h2 class="font-display text-lg font-semibold">Quick links</h2>
+            <ul class="mt-4 space-y-2 text-sm">
+              <li><button type="button" class="font-medium text-teal hover:underline" onclick="showScreen('redemptions')">View redemptions log</button></li>
+              <li><button type="button" class="font-medium text-teal hover:underline" onclick="showScreen('challenge-metrics')">Challenge metrics</button></li>
+              <li><button type="button" class="font-medium text-teal hover:underline" onclick="showScreen('scan')">Scan QR rewards</button></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHALLENGES LIST -->
+    <div id="page-challenges" class="portal-page">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="font-display text-2xl font-semibold">Challenges</h1>
+          <p class="mt-1 text-ink-muted">Sponsored habit campaigns visible to CADA users after publishing.</p>
+        </div>
+        <button type="button" class="rounded-lg bg-teal px-4 py-2.5 text-sm font-semibold text-white shrink-0" onclick="showScreen('challenge-new')">New challenge</button>
+      </div>
+      <div class="mt-6 rounded-xl border border-surface-border bg-white overflow-x-auto shadow-card">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="border-b border-surface-border bg-surface-subtle text-ink-muted">
+              <th class="px-4 py-3 font-medium">Challenge</th>
+              <th class="px-4 py-3 font-medium">Habit</th>
+              <th class="px-4 py-3 font-medium">Status</th>
+              <th class="px-4 py-3 font-medium">Enrolled</th>
+              <th class="px-4 py-3 font-medium">Completed</th>
+              <th class="px-4 py-3 font-medium"></th>
+            </tr>
+          </thead>
+          <tbody id="challenges-tbody">
+            <tr class="border-b border-surface-border/70">
+              <td class="px-4 py-3 font-medium">Try a class at Studio Flow</td>
+              <td class="px-4 py-3 text-ink-muted">Stretch</td>
+              <td class="px-4 py-3"><span class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">active</span></td>
+              <td class="px-4 py-3 tabular-nums">8</td>
+              <td class="px-4 py-3 tabular-nums">5</td>
+              <td class="px-4 py-3 text-right space-x-3">
+                <button type="button" class="font-medium text-teal hover:underline" onclick="showScreen('challenge-metrics')">Metrics</button>
+                <button type="button" class="font-medium text-ink-muted hover:underline">Manage</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p id="challenges-empty" class="hidden p-8 text-center text-sm text-ink-muted">No challenges yet. <button type="button" class="text-teal font-medium hover:underline" onclick="showScreen('challenge-new')">Create your first</button></p>
+      </div>
+    </div>
+
+    <!-- NEW CHALLENGE -->
+    <div id="page-challenge-new" class="portal-page max-w-2xl">
+      <button type="button" class="text-sm font-medium text-teal hover:underline" onclick="showScreen('challenges')">← All challenges</button>
+      <h1 class="mt-4 font-display text-2xl font-semibold">New challenge</h1>
+      <form class="mt-6 rounded-xl border border-surface-border bg-white p-6 space-y-5 shadow-card" onsubmit="event.preventDefault(); publishChallenge()">
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Title</label>
+          <input type="text" value="Try a class at Studio Flow" class="w-full rounded-lg border border-surface-border px-3.5 py-2.5 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Linked habit</label>
+          <select class="w-full rounded-lg border border-surface-border px-3.5 py-2.5 text-sm"><option>Stretch</option><option>Gym</option></select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Offer headline</label>
+          <input type="text" value="First class free" class="w-full rounded-lg border border-surface-border px-3.5 py-2.5 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Description</label>
+          <textarea rows="3" class="w-full rounded-lg border border-surface-border px-3.5 py-2.5 text-sm">Complete one stretch habit and redeem your first class free.</textarea>
+        </div>
+        <div class="flex gap-3">
+          <button type="submit" class="rounded-lg bg-teal px-4 py-2.5 text-sm font-semibold text-white">Save & publish</button>
+          <button type="button" class="rounded-lg border border-surface-border px-4 py-2.5 text-sm font-semibold" onclick="showScreen('challenges')">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- CHALLENGE METRICS -->
+    <div id="page-challenge-metrics" class="portal-page">
+      <button type="button" class="text-sm font-medium text-teal hover:underline" onclick="showScreen('challenges')">← All challenges</button>
+      <h1 class="mt-4 font-display text-2xl font-semibold">Try a class at Studio Flow</h1>
+      <p class="mt-1 capitalize text-ink-muted">active · Last 30 days</p>
+      <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="rounded-xl border border-surface-border bg-white p-6 shadow-card"><p class="text-sm text-ink-muted">Enrolled</p><p class="mt-2 font-display text-3xl font-semibold">8</p></div>
+        <div class="rounded-xl border border-surface-border bg-white p-6 shadow-card"><p class="text-sm text-ink-muted">Completions</p><p class="mt-2 font-display text-3xl font-semibold">5</p></div>
+        <div class="rounded-xl border border-surface-border bg-white p-6 shadow-card"><p class="text-sm text-ink-muted">Redemption rate</p><p class="mt-2 font-display text-3xl font-semibold">67%</p></div>
+      </div>
+    </div>
+
+    <!-- REDEMPTIONS -->
+    <div id="page-redemptions" class="portal-page">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <button type="button" class="text-sm font-medium text-teal hover:underline" onclick="showScreen('dashboard')">← Dashboard</button>
+          <h1 class="mt-2 font-display text-2xl font-semibold">Redemptions</h1>
+          <p class="mt-1 text-ink-muted">2 redemptions · Last 30 days</p>
+        </div>
+        <select class="rounded-lg border border-surface-border bg-white px-3 py-2 text-sm" disabled><option>Last 30 days</option></select>
+      </div>
+      <p class="mt-4 text-xs text-ink-muted">Privacy: user column shows anonymized labels only.</p>
+      <div id="redemptions-table" class="mt-6 rounded-xl border border-surface-border bg-white overflow-x-auto shadow-card">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="border-b border-surface-border bg-surface-subtle text-ink-muted">
+              <th class="px-4 py-3 font-medium">Redeemed at</th>
+              <th class="px-4 py-3 font-medium">Challenge</th>
+              <th class="px-4 py-3 font-medium">Staff</th>
+              <th class="px-4 py-3 font-medium">User</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-surface-border/70">
+              <td class="px-4 py-3">Jun 10, 2026, 2:04 PM</td>
+              <td class="px-4 py-3">Try a class at Studio Flow</td>
+              <td class="px-4 py-3 text-ink-muted">scanner@studioflow.example</td>
+              <td class="px-4 py-3 text-ink-muted">User #A1</td>
+            </tr>
+            <tr class="border-b border-surface-border/70">
+              <td class="px-4 py-3">Jun 13, 2026, 11:02 AM</td>
+              <td class="px-4 py-3">Try a class at Studio Flow</td>
+              <td class="px-4 py-3 text-ink-muted">admin@studioflow.example</td>
+              <td class="px-4 py-3 text-ink-muted">User #A2</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p id="redemptions-empty" class="hidden mt-6 text-center text-sm text-ink-muted">No redemptions in this period.</p>
+    </div>
+
+    <!-- SCAN -->
+    <div id="page-scan" class="portal-page max-w-lg mx-auto">
+      <h1 class="font-display text-2xl font-semibold text-center">Scan reward</h1>
+      <p class="mt-1 text-center text-sm text-ink-muted">Point camera at customer's QR code</p>
+      <div class="mt-8 relative aspect-square max-w-sm mx-auto rounded-2xl border-2 border-teal/30 bg-black overflow-hidden">
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="scan-pulse w-48 h-48 border-2 border-teal rounded-xl"></div>
+        </div>
+        <div class="absolute bottom-4 inset-x-4 text-center text-white/80 text-xs">Camera preview (demo)</div>
+      </div>
+      <div class="mt-6">
+        <label class="block text-sm font-medium mb-1.5">Or paste token / URL</label>
+        <input id="scan-input" type="text" placeholder="https://redeem.cada.app/r/…" class="w-full rounded-lg border border-surface-border px-3.5 py-2.5 text-sm">
+        <button type="button" class="mt-3 w-full rounded-lg bg-teal py-3 text-sm font-semibold text-white" onclick="mockRedeem()">Redeem</button>
+      </div>
+      <div id="scan-result" class="hidden mt-4 rounded-lg px-4 py-3 text-sm font-medium text-center"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div id="page-profile" class="portal-page max-w-2xl">
+      <h1 class="font-display text-2xl font-semibold">Brand profile</h1>
+      <p class="mt-1 text-ink-muted">Update your business information visible to CADA users.</p>
+      <form class="mt-6 rounded-xl border border-surface-border bg-white p-6 space-y-5 shadow-card" onsubmit="event.preventDefault(); showScreen('dashboard')">
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Business name</label>
+          <input type="text" value="Studio Flow Yoga" class="w-full rounded-lg border border-surface-border px-3.5 py-2.5 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Website</label>
+          <input type="url" value="https://studioflow.example" class="w-full rounded-lg border border-surface-border px-3.5 py-2.5 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Default offer copy</label>
+          <textarea rows="2" class="w-full rounded-lg border border-surface-border px-3.5 py-2.5 text-sm">First class free for new CADA members</textarea>
+        </div>
+        <button type="submit" class="rounded-lg bg-teal px-4 py-2.5 text-sm font-semibold text-white">Save changes</button>
+      </form>
+    </div>
+
+  </main>
+</div>
+
+<!-- Mobile app reward screen (bonus) -->
+<div id="view-mobile-reward" class="view view-flex min-h-[calc(100vh-36px)] bg-sky flex-col items-center px-4 py-10">
+  <button type="button" class="self-start text-sm font-medium text-teal hover:underline mb-6" onclick="enterPortal()">← Back to portal demo</button>
+  <div class="w-full max-w-sm rounded-2xl border-2 border-surface-border bg-white p-6 shadow-card text-center">
+    <p class="text-xs font-bold uppercase tracking-wide text-ink-muted">Your reward</p>
+    <h2 class="mt-2 font-display text-xl font-bold">Studio Flow Yoga</h2>
+    <p class="mt-1 text-teal font-semibold">First class free</p>
+    <p class="text-xs text-ink-muted mt-1">Code: CADA-STRETCH</p>
+    <div class="mt-6 mx-auto w-48 h-48 qr-grid rounded-lg border-4 border-white shadow-inner flex items-center justify-center bg-white">
+      <span class="sym sym-fill text-6xl text-teal">qr_code_2</span>
+    </div>
+    <p class="mt-4 text-sm font-medium text-coral" id="qr-countdown">Expires in 23h 14m</p>
+    <p class="mt-2 text-xs text-ink-muted">Show this screen at Studio Flow to redeem</p>
+  </div>
+  <button type="button" class="mt-6 text-sm text-teal hover:underline" onclick="showScreen('mobile-reward')">View as mobile user (QR screen)</button>
+</div>
+
+<script>
+  function showAuth(which) {
+    document.getElementById('view-login').classList.toggle('is-visible', which === 'login');
+    document.getElementById('view-signup').classList.toggle('is-visible', which === 'signup');
+    document.getElementById('view-app').classList.remove('is-visible');
+    document.getElementById('view-mobile-reward').classList.remove('is-visible');
+  }
+
+  function enterPortal(event, mode) {
+    if (event) event.preventDefault();
+    if (mode) setDemoMode(mode);
+    document.getElementById('view-login').classList.remove('is-visible');
+    document.getElementById('view-signup').classList.remove('is-visible');
+    document.getElementById('view-mobile-reward').classList.remove('is-visible');
+    document.getElementById('view-app').classList.add('is-visible');
+    showPage('dashboard');
+    return false;
+  }
+
+  function showPage(name) {
+    document.querySelectorAll('.portal-page').forEach(function (el) {
+      el.classList.remove('is-visible');
+    });
+    var page = document.getElementById('page-' + name);
+    if (page) page.classList.add('is-visible');
+    updateNav(name);
+  }
+
+  // Alias for inline onclick handlers
+  function showScreen(name) {
+    if (name === 'login' || name === 'signup') {
+      showAuth(name);
+      return;
+    }
+    if (name === 'mobile-reward') {
+      document.getElementById('view-app').classList.remove('is-visible');
+      document.getElementById('view-login').classList.remove('is-visible');
+      document.getElementById('view-signup').classList.remove('is-visible');
+      document.getElementById('view-mobile-reward').classList.add('is-visible');
+      return;
+    }
+    document.getElementById('view-app').classList.add('is-visible');
+    document.getElementById('view-login').classList.remove('is-visible');
+    document.getElementById('view-signup').classList.remove('is-visible');
+    document.getElementById('view-mobile-reward').classList.remove('is-visible');
+    showPage(name);
+  }
+
+  function updateNav(name) {
+    document.querySelectorAll('.nav-link').forEach(function (el) {
+      var nav = el.getAttribute('data-nav');
+      var active = nav === name ||
+        (name === 'challenge-metrics' && nav === 'challenges') ||
+        (name === 'challenge-new' && nav === 'challenges') ||
+        (name === 'profile' && nav === 'dashboard');
+      el.classList.toggle('active', active);
+    });
+  }
+
+  function setDemoMode(mode) {
+    var select = document.getElementById('demo-mode');
+    if (select) select.value = mode;
+    var onboarding = mode === 'onboarding';
+    document.getElementById('panel-onboarding').classList.toggle('hidden', !onboarding);
+    document.getElementById('panel-empty-metrics').classList.toggle('hidden', !onboarding);
+    document.getElementById('panel-metrics').classList.toggle('hidden', onboarding);
+    var tbody = document.getElementById('challenges-tbody');
+    if (tbody) tbody.classList.toggle('hidden', onboarding);
+    document.getElementById('challenges-empty').classList.toggle('hidden', !onboarding);
+    document.getElementById('redemptions-table').classList.toggle('hidden', onboarding);
+    document.getElementById('redemptions-empty').classList.toggle('hidden', !onboarding);
+    var redemptionsMeta = document.querySelector('#page-redemptions .text-ink-muted.mt-1');
+    if (redemptionsMeta) {
+      redemptionsMeta.textContent = onboarding ? '0 redemptions · Last 30 days' : '2 redemptions · Last 30 days';
+    }
+  }
+
+  function publishChallenge() {
+    setDemoMode('metrics');
+    showPage('dashboard');
+    alert('Demo: Challenge published! Dashboard switched to active metrics view.');
+  }
+
+  function mockRedeem() {
+    var el = document.getElementById('scan-result');
+    el.classList.remove('hidden');
+    el.className = 'mt-4 rounded-lg px-4 py-3 text-sm font-medium text-center bg-green-50 text-green-800 border border-green-200';
+    el.textContent = '✓ Reward redeemed — Try a class at Studio Flow';
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    setDemoMode('onboarding');
+    var ql = document.querySelector('#panel-metrics ul');
+    if (ql) {
+      var li = document.createElement('li');
+      li.innerHTML = '<button type="button" class="font-medium text-teal hover:underline" onclick="showScreen(\'mobile-reward\')">Preview mobile QR screen</button>';
+      ql.appendChild(li);
+    }
+  });
+</script>
+</body>
+</html>

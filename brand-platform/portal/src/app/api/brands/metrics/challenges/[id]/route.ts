@@ -1,0 +1,46 @@
+import { NextResponse } from "next/server";
+import { getStaffContext } from "@/lib/auth/session";
+import { handleApiError, jsonError } from "@/lib/api";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getBrandMetrics } from "@/lib/metrics/aggregate";
+import { parseMetricsRange } from "@/lib/metrics/range";
+
+type RouteParams = { params: Promise<{ id: string }> };
+
+export async function GET(request: Request, { params }: RouteParams) {
+  try {
+    const staff = await getStaffContext();
+    if (!staff) return jsonError("Unauthorized", 401);
+
+    const { id: challengeId } = await params;
+    const admin = createAdminClient();
+
+    const { data: challenge } = await admin
+      .from("challenges")
+      .select("id, title, status")
+      .eq("id", challengeId)
+      .eq("brand_id", staff.brandId)
+      .maybeSingle();
+
+    if (!challenge) return jsonError("Challenge not found", 404);
+
+    const { searchParams } = new URL(request.url);
+    const range = parseMetricsRange(searchParams);
+    const metrics = await getBrandMetrics(staff.brandId, range.from, range.to, challengeId);
+
+    return NextResponse.json({
+      challenge: {
+        id: challenge.id,
+        title: challenge.title,
+        status: challenge.status,
+      },
+      range: range.preset,
+      from: range.from,
+      to: range.to,
+      label: range.label,
+      ...metrics,
+    });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}

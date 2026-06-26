@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html class="scroll-smooth" lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Influencers & Communities | CADA</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { teal: '#1CB0C8', 'teal-dark': '#1899B0', 'teal-light': '#DDF8FC', coral: '#FF9600', 'coral-dark': '#E08600', 'coral-light': '#FFF4E5', purple: '#CE82FF', 'purple-light': '#F3E8FF', sky: '#E8F7FA', ink: '#3C3C3C', 'ink-light': '#777777', border: '#E5E5E5' },
+          fontFamily: { display: ['Nunito', 'sans-serif'], body: ['DM Sans', 'sans-serif'] },
+          borderRadius: { card: '16px', pill: '9999px' },
+        },
+      },
+    };
+  </script>
+  <style>
+    .sym { font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; line-height: 1; display: inline-block; font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24; -webkit-font-smoothing: antialiased; }
+    .sym-fill { font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+    .sym-md { font-size: 22px; }
+    .sym-lg { font-size: 28px; }
+    .sym-xl { font-size: 36px; }
+    .btn-coral { background: #FF9600; color: white; box-shadow: 0 4px 0 #E08600; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .btn-coral:hover { transform: translateY(-2px); }
+    .btn-coral:active { transform: translateY(4px); box-shadow: none; }
+    .btn-primary { background: #1CB0C8; color: white; box-shadow: 0 4px 0 #1899B0; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .btn-primary:hover { transform: translateY(-2px); }
+    .card-duo { background: white; border: 2px solid #E5E5E5; border-radius: 16px; box-shadow: 0 2px 0 #E5E5E5; transition: transform 0.25s cubic-bezier(0.34,1.2,0.64,1), box-shadow 0.25s ease; }
+    .card-duo:hover { transform: translateY(-2px); box-shadow: 0 4px 0 #D0D0D0; }
+    @keyframes nav-in { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fade-up { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes slide-in { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+    .nav-bar { animation: nav-in 0.6s cubic-bezier(0.22,1,0.36,1) both; }
+    .hero-in { opacity: 0; animation: fade-up 0.85s cubic-bezier(0.22,1,0.36,1) forwards; }
+    .hero-in-d1 { animation-delay: 0.15s; }
+    .hero-in-d2 { animation-delay: 0.3s; }
+    .hero-in-d3 { animation-delay: 0.45s; }
+    .hero-card { opacity: 0; animation: slide-in 0.9s cubic-bezier(0.22,1,0.36,1) 0.35s forwards; }
+    .seq-item { opacity: 0; transform: translateY(16px); transition: opacity 0.8s cubic-bezier(0.22,1,0.36,1), transform 0.8s cubic-bezier(0.22,1,0.36,1); will-change: opacity, transform; }
+    .seq-item.from-left { transform: translateX(-20px); }
+    .seq-section.in-view .seq-item { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) {
+      .nav-bar, .hero-in, .hero-card { animation: none; opacity: 1; transform: none; }
+      .seq-item { opacity: 1; transform: none; transition: none; }
+    }
+  </style>
+</head>
+<body class="bg-white font-body text-ink antialiased">
+
+<nav class="nav-bar fixed top-0 inset-x-0 z-50 bg-white border-b-2 border-border">
+  <div class="max-w-5xl mx-auto px-5 h-[60px] flex items-center justify-between">
+    <a href="../index.html" class="inline-flex shrink-0 items-center">
+      <img src="../images/cada-logo.png" alt="CADA" class="h-8 w-auto" width="251" height="80" />
+    </a>
+    <div class="hidden md:flex items-center gap-6 text-sm font-bold text-ink-light">
+      <a href="../index.html" class="hover:text-teal">Home</a>
+      <a href="../cada_partnerships_page/code.html" class="hover:text-teal">Partnerships</a>
+      <a href="code.html" class="text-teal">Influencers</a>
+    </div>
+    <a href="https://apps.apple.com/us/app/cada-social-habit-tracker/id6756549174" target="_blank" rel="noopener noreferrer" class="btn-primary text-sm font-extrabold px-5 py-2.5 rounded-card font-display">GET THE APP</a>
+  </div>
+</nav>
+
+<section class="pt-28 pb-16 px-5 bg-gradient-to-b from-purple-light to-white">
+  <div class="max-w-5xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+    <div class="reveal-left">
+      <div class="hero-in inline-flex items-center gap-2 bg-white border-2 border-coral/30 rounded-pill px-4 py-2 mb-6 card-duo">
+        <span class="material-symbols-outlined sym sym-md text-coral">auto_awesome</span>
+        <span class="font-display font-extrabold text-coral text-sm">FOR INFLUENCERS & COMMUNITY BUILDERS</span>
+      </div>
+      <h1 class="hero-in hero-in-d1 font-display text-4xl md:text-5xl font-extrabold mb-5">
+        Turn your audience into<br>
+        <span class="text-purple">a circle that shows up.</span>
+      </h1>
+      <p class="hero-in hero-in-d2 text-lg text-ink leading-relaxed mb-3 font-medium max-w-lg">
+        You already bring people together. CADA gives your community a home where they feel close to each other, every day.
+      </p>
+      <p class="hero-in hero-in-d2 text-ink-light mb-8 max-w-lg">
+        Not another broadcast. A shared ritual your followers do with their own family and friends — powered by you.
+      </p>
+      <a href="#apply" class="hero-in hero-in-d3 btn-coral inline-block font-display font-extrabold text-lg px-8 py-4 rounded-card">LAUNCH YOUR CIRCLE</a>
+    </div>
+    <div class="hero-card card-duo p-6">
+      <div class="seq-section space-y-4">
+        <div class="seq-item font-display font-extrabold text-xs text-ink-light uppercase mb-5">Why influencers love CADA</div>
+        <div class="seq-item flex gap-3 items-start">
+          <div class="w-10 h-10 bg-teal-light rounded-card flex items-center justify-center shrink-0 text-teal"><span class="material-symbols-outlined sym sym-md">campaign</span></div>
+          <div><div class="font-display font-extrabold">Your community, your circle</div><p class="text-xs text-ink-light">Launch under your name. Your followers invite their people — moms, roommates, best friends.</p></div>
+        </div>
+        <div class="seq-item flex gap-3 items-start">
+          <div class="w-10 h-10 bg-coral-light rounded-card flex items-center justify-center shrink-0 text-coral"><span class="material-symbols-outlined sym sym-md">groups</span></div>
+          <div><div class="font-display font-extrabold">Connection, not content</div><p class="text-xs text-ink-light">They show up for each other in a private feed — you're the one who started it.</p></div>
+        </div>
+        <div class="seq-item flex gap-3 items-start">
+          <div class="w-10 h-10 bg-purple-light rounded-card flex items-center justify-center shrink-0 text-purple"><span class="material-symbols-outlined sym sym-md">bar_chart</span></div>
+          <div><div class="font-display font-extrabold">Community insights</div><p class="text-xs text-ink-light">See how your circle is growing, showing up, and staying close.</p></div>
+        </div>
+        <div class="seq-item flex gap-3 items-start">
+          <div class="w-10 h-10 bg-sky rounded-card flex items-center justify-center shrink-0 text-teal"><span class="material-symbols-outlined sym sym-md">handshake</span></div>
+          <div><div class="font-display font-extrabold">Brand partnerships</div><p class="text-xs text-ink-light">Unlock rewards and sponsored challenges for your whole community.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="py-16 px-5 bg-sky">
+  <div class="seq-section max-w-5xl mx-auto">
+    <h2 class="seq-item font-display text-3xl font-extrabold mb-3 text-center">Built for people who build communities</h2>
+    <p class="seq-item text-ink-light text-sm max-w-md mx-auto text-center mb-10">If your audience trusts you to bring them together, you're who we want.</p>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="seq-item card-duo p-5 text-center">
+        <div class="mb-3 text-teal"><span class="material-symbols-outlined sym sym-xl">self_improvement</span></div>
+        <div class="font-display font-extrabold mb-1">Wellness</div>
+        <p class="text-xs text-ink-light">Yoga, fitness, meditation</p>
+      </div>
+      <div class="seq-item card-duo p-5 text-center">
+        <div class="mb-3 text-teal"><span class="material-symbols-outlined sym sym-xl">school</span></div>
+        <div class="font-display font-extrabold mb-1">Campus</div>
+        <p class="text-xs text-ink-light">Student orgs & leaders</p>
+      </div>
+      <div class="seq-item card-duo p-5 text-center">
+        <div class="mb-3 text-teal"><span class="material-symbols-outlined sym sym-xl">smartphone</span></div>
+        <div class="font-display font-extrabold mb-1">Influencers</div>
+        <p class="text-xs text-ink-light">TikTok, IG, YouTube — audiences who want more than a follow</p>
+      </div>
+      <div class="seq-item card-duo p-5 text-center">
+        <div class="mb-3 text-teal"><span class="material-symbols-outlined sym sym-xl">location_city</span></div>
+        <div class="font-display font-extrabold mb-1">Communities</div>
+        <p class="text-xs text-ink-light">Book clubs, run crews</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="py-16 px-5">
+  <div class="seq-section max-w-3xl mx-auto card-duo bg-teal-light border-teal/20 p-8 text-center">
+    <p class="seq-item text-ink-light italic text-sm max-w-md mx-auto">"My followers didn't need more content from me — they needed a way to stay close to their own people. CADA gave them that."</p>
+    <div class="seq-item font-display font-extrabold text-teal text-sm mt-3">— Priya K.</div>
+  </div>
+</section>
+
+<section id="apply" class="py-20 px-5 bg-purple-light">
+  <div class="seq-section max-w-md mx-auto">
+    <h2 class="seq-item font-display text-3xl font-extrabold text-center mb-2">Start your community circle</h2>
+    <p class="seq-item text-ink-light text-center text-sm mb-8">Tell us about your audience — we'll help you launch.</p>
+    <form class="seq-item card-duo p-6 space-y-4" onsubmit="event.preventDefault(); alert('Application received! We\'ll be in touch.');">
+      <div>
+        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display">Your name</label>
+        <input type="text" class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-purple outline-none" placeholder="Full name">
+      </div>
+      <div>
+        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display">Email</label>
+        <input type="email" class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-purple outline-none" placeholder="you@email.com">
+      </div>
+      <div>
+        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display">Your handle</label>
+        <input type="text" class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-purple outline-none" placeholder="@you · TikTok, IG, podcast, etc.">
+      </div>
+      <div>
+        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display">Your community</label>
+        <textarea rows="3" class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-purple outline-none resize-none" placeholder="Who follows you? What kind of circle would they build together?"></textarea>
+      </div>
+      <button type="submit" class="w-full btn-coral font-display font-extrabold py-4 rounded-card text-lg">SUBMIT!</button>
+    </form>
+  </div>
+</section>
+
+<footer class="border-t-2 border-border bg-sky px-5 py-8 text-center text-xs text-ink-light">
+  <a href="../index.html" class="inline-flex justify-center">
+    <img src="../images/cada-logo.png" alt="CADA" class="h-8 w-auto" width="251" height="80" />
+  </a>
+  <p class="mt-2">© 2026 CADA</p>
+</footer>
+
+<script>
+  (function () {
+    const STEP = 160;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function activate(section) {
+      section.classList.add('in-view');
+    }
+    document.querySelectorAll('.seq-section').forEach(section => {
+      section.querySelectorAll('.seq-item').forEach((item, i) => {
+        item.style.transitionDelay = `${i * STEP}ms`;
+      });
+      if (reduced) { activate(section); return; }
+      const rect = section.getBoundingClientRect();
+      if (rect.top < window.innerHeight * 0.9) activate(section);
+    });
+    if (reduced) return;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        activate(entry.target);
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -50px 0px' });
+    document.querySelectorAll('.seq-section').forEach(el => {
+      if (!el.classList.contains('in-view')) observer.observe(el);
+    });
+  })();
+</script>
+</body>
+</html>

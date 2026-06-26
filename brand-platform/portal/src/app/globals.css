@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --teal: #1cb0c8;
+  --teal-dark: #1899b0;
+  --border: #e5e5e5;
+}
+
+@layer base {
+  body {
+    @apply bg-white font-sans text-ink antialiased;
+  }
+
+  .font-display.font-semibold,
+  .font-display.font-bold {
+    font-weight: 800;
+  }
+}
+
+@layer components {
+  .sym {
+    font-family: "Material Symbols Outlined";
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    display: inline-block;
+    font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+    -webkit-font-smoothing: antialiased;
+    vertical-align: middle;
+  }
+
+  .sym-fill {
+    font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
+  }
+
+  .sym-sm {
+    font-size: 16px;
+  }
+
+  .sym-md {
+    font-size: 22px;
+  }
+
+  .sym-lg {
+    font-size: 28px;
+  }
+
+  .page-shell {
+    @apply min-h-screen bg-gradient-to-b from-sky to-white;
+  }
+
+  .portal-main {
+    @apply mx-auto max-w-5xl px-5 py-8 sm:px-6;
+  }
+
+  .input {
+    @apply w-full rounded-card border-2 border-border bg-sky px-4 py-3 text-sm font-medium text-ink placeholder:text-ink-light/70 transition focus:border-teal focus:outline-none disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .label {
+    @apply mb-1.5 block font-display text-xs font-extrabold uppercase tracking-wide text-ink-light;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-card bg-teal px-5 py-3 font-display text-sm font-extrabold text-white shadow-btn-primary transition hover:-translate-y-0.5 active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:active:translate-y-0 disabled:active:shadow-btn-primary;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-card border-2 border-border bg-white px-5 py-3 font-display text-sm font-extrabold text-ink shadow-btn-secondary transition hover:-translate-y-0.5 active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:active:translate-y-0 disabled:active:shadow-btn-secondary;
+  }
+
+  .card {
+    @apply rounded-card border-2 border-border bg-white p-6 shadow-card;
+  }
+
+  .card-duo {
+    @apply rounded-card border-2 border-border bg-white shadow-card transition hover:-translate-y-0.5 hover:shadow-card-hover;
+  }
+
+  .site-nav {
+    @apply sticky top-0 z-50 border-b-2 border-border bg-white;
+  }
+
+  .nav-link {
+    @apply rounded-card px-3 py-2 font-display text-sm font-bold text-ink-light transition hover:text-teal;
+  }
+
+  .nav-link-active {
+    @apply bg-teal-light text-teal-dark;
+  }
+
+  .table-shell {
+    @apply overflow-hidden rounded-card border-2 border-border bg-white shadow-card;
+  }
+
+  .table-shell thead tr {
+    @apply border-b-2 border-border bg-sky text-ink-light;
+  }
+
+  .table-shell tbody tr {
+    @apply border-b border-border/80 transition hover:bg-sky/40;
+  }
+
+  .alert {
+    @apply rounded-card border-2 px-4 py-3 text-sm font-medium;
+  }
+
+  .alert-error {
+    @apply alert border-coral/30 bg-coral-light text-coral-dark;
+  }
+
+  .alert-success {
+    @apply alert border-teal/30 bg-teal-light text-teal-dark;
+  }
+
+  .alert-info {
+    @apply alert border-teal/20 bg-teal-light/80 text-teal-dark;
+  }
+
+  .funnel-track {
+    @apply h-2.5 overflow-hidden rounded-pill bg-border;
+  }
+
+  .funnel-fill {
+    @apply h-full rounded-pill bg-gradient-to-r from-teal to-[#58E0F5] transition-all duration-500;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary,
+  .btn-secondary,
+  .card-duo {
+    transition: none;
+  }
+
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .card-duo:hover {
+    transform: none;
+  }
+}
