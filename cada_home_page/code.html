@@ -2,7 +2,7 @@
 <html class="scroll-smooth" lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CADA | Feel close in 15 seconds a day</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -23,7 +23,10 @@
     };
   </script>
   <style>
-    .material-symbols-filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .star-rating { display: inline-flex; align-items: center; gap: 1px; color: #FF9500; }
+    .star-rating-partial { position: relative; display: inline-flex; width: 1.125rem; height: 1.125rem; flex-shrink: 0; }
+    .star-rating-partial .star-empty { color: #D1D1D6; }
+    .star-rating-partial .star-fill { position: absolute; inset: 0; overflow: hidden; white-space: nowrap; }
     .sym { font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr; font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24; -webkit-font-smoothing: antialiased; }
     .sym-fill { font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
     .sym-sm { font-size: 16px; }
@@ -66,6 +69,16 @@
     .btn-primary:hover, .btn-outline:hover { transform: translateY(-2px); }
     .timer-bar { width: 0; background: linear-gradient(90deg, #1CB0C8, #58E0F5); border-radius: 9999px; height: 100%; }
     .timer-bar.animate { animation: timer-fill 1.6s cubic-bezier(0.22,1,0.36,1) forwards; }
+    @media (max-width: 767px) {
+      .feed-phone-shell--compact { border-radius: 32px; padding: 8px; box-shadow: 0 5px 0 #D0D0D0, 0 16px 32px rgba(28,176,200,0.15); }
+      .feed-phone-shell--compact .feed-phone-notch { width: 72px; height: 20px; margin-bottom: -10px; }
+      .feed-phone-shell--compact .feed-phone-screen { border-radius: 26px; }
+    }
+    .mobile-menu-drop { border-bottom: 2px solid #E5E5E5; background: #fff; box-shadow: 0 8px 16px rgba(0,0,0,0.06); }
+    .mobile-menu-drop a { display: block; padding: 0.875rem 1.25rem; font-weight: 700; font-family: 'Nunito', sans-serif; font-size: 0.9375rem; color: #3C3C3C; border-top: 1px solid #F0F0F0; }
+    .mobile-menu-drop a:first-child { border-top: none; }
+    .mobile-menu-drop a.menu-active { color: #1CB0C8; background: #DDF8FC; }
+    .nav-bar { padding-top: env(safe-area-inset-top, 0px); }
     @media (prefers-reduced-motion: reduce) {
       .nav-bar, .hero-in, .hero-phone, .animate-float, .animate-float-delayed { animation: none; opacity: 1; transform: none; }
       .seq-item { opacity: 1; transform: none; transition: none; }
@@ -75,25 +88,35 @@
 <body class="bg-white font-body text-ink antialiased">
 
 <nav class="nav-bar fixed top-0 inset-x-0 z-50 bg-white border-b-2 border-border">
-  <div class="max-w-5xl mx-auto px-5 h-[60px] flex items-center justify-between">
-    <a href="../index.html" class="inline-flex shrink-0 items-center">
+  <div class="max-w-5xl mx-auto px-4 sm:px-5 h-[60px] flex items-center justify-between gap-2">
+    <a href="../index.html" class="inline-flex shrink-0 items-center min-w-0">
       <img src="../images/cada-logo.png" alt="CADA" class="h-8 w-auto" width="251" height="80" />
     </a>
     <div class="hidden md:flex items-center gap-6 text-sm font-bold text-ink-light">
+      <a href="../index.html" class="text-teal">Home</a>
       <a href="../cada_partnerships_page/code.html" class="hover:text-teal transition-colors">Partnerships</a>
       <a href="../cada_creators_page/code.html" class="hover:text-teal transition-colors">Influencers</a>
     </div>
-    <a href="https://apps.apple.com/us/app/cada-social-habit-tracker/id6756549174" target="_blank" rel="noopener noreferrer" class="btn-primary text-sm font-extrabold px-5 py-2.5 rounded-card font-display">GET THE APP</a>
+    <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+      <button type="button" id="mobile-menu-btn" class="md:hidden flex items-center justify-center w-9 h-9 rounded-card border-2 border-border text-ink" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
+        <span class="sym sym-md" id="mobile-menu-icon">menu</span>
+      </button>
+      <a href="https://apps.apple.com/us/app/cada-social-habit-tracker/id6756549174" target="_blank" rel="noopener noreferrer" class="btn-primary text-[11px] sm:text-sm font-extrabold px-3 sm:px-5 py-2 sm:py-2.5 rounded-card font-display whitespace-nowrap">GET THE APP</a>
+    </div>
+  </div>
+  <div id="mobile-menu" class="mobile-menu-drop md:hidden" hidden>
+    <nav class="max-w-5xl mx-auto" aria-label="Mobile">
+      <a href="../index.html" class="menu-active">Home</a>
+      <a href="../cada_partnerships_page/code.html">Partnerships</a>
+      <a href="../cada_creators_page/code.html">Influencers</a>
+    </nav>
   </div>
 </nav>
 
 <!-- Hero -->
-<section class="pt-24 pb-16 px-5 bg-gradient-to-b from-teal-light to-white">
-  <div class="max-w-5xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+<section class="pt-24 pb-14 md:pb-16 px-5 bg-gradient-to-b from-teal-light to-white">
+  <div class="max-w-5xl mx-auto grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
     <div>
-      <a href="../index.html" class="hero-in inline-flex mb-6">
-        <img src="../images/cada-logo.png" alt="CADA" class="h-10 w-auto" width="314" height="100" />
-      </a>
       <h1 class="hero-in font-display text-4xl md:text-5xl font-extrabold leading-[1.1] mb-5">
         Life gets busy.<br>
         <span class="text-ink-light">Don't Let the people you love fade into the background.</span>
@@ -107,15 +130,20 @@
       <a href="https://apps.apple.com/us/app/cada-social-habit-tracker/id6756549174" target="_blank" rel="noopener noreferrer" class="hero-in hero-in-d3 btn-primary inline-block font-display font-extrabold text-lg px-8 py-4 rounded-card mb-6">
         FEEL CLOSE AGAIN
       </a>
-      <div class="hero-in hero-in-d4 flex items-center gap-2 text-sm">
-        <div class="flex text-coral">
-          <span class="material-symbols-filled text-lg">star</span>
-          <span class="material-symbols-filled text-lg">star</span>
-          <span class="material-symbols-filled text-lg">star</span>
-          <span class="material-symbols-filled text-lg">star</span>
-          <span class="material-symbols-filled text-lg">star</span>
+      <div class="hero-in hero-in-d4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        <div class="star-rating" role="img" aria-label="Rated 4.9 out of 5 on the App Store">
+          <span class="sym sym-fill text-lg leading-none">star</span>
+          <span class="sym sym-fill text-lg leading-none">star</span>
+          <span class="sym sym-fill text-lg leading-none">star</span>
+          <span class="sym sym-fill text-lg leading-none">star</span>
+          <span class="star-rating-partial" aria-hidden="true">
+            <span class="sym sym-fill text-lg leading-none star-empty">star</span>
+            <span class="star-fill" style="width:90%">
+              <span class="sym sym-fill text-lg leading-none">star</span>
+            </span>
+          </span>
         </div>
-        <span class="font-bold text-ink-light">4.9 · Loved by circles everywhere</span>
+        <span class="font-bold text-ink-light"><span class="text-ink">4.9</span> stars on the App Store</span>
       </div>
     </div>
     <div class="hero-phone flex justify-center relative">
@@ -126,7 +154,7 @@
       <div class="absolute -bottom-3 -right-2 bg-coral text-white rounded-card px-3 py-2 z-10 hidden sm:block text-sm font-display font-extrabold animate-float-delayed" style="box-shadow:0 4px 0 #E08600">
         Mom cheered you <span class="material-symbols-filled sym sym-sm">favorite</span>
       </div>
-      <div class="feed-phone-shell w-[280px] sm:w-[300px]">
+      <div class="feed-phone-shell feed-phone-shell--compact w-[220px] sm:w-[300px]">
         <div class="feed-phone-notch"></div>
         <div class="feed-phone-screen">
           <img src="../assets/circle-feed.png" alt="CADA circle feed" width="390" height="844">
@@ -163,34 +191,38 @@
 
 <!-- Circle feed -->
 <section class="py-16 px-5 bg-white">
-  <div class="seq-section max-w-5xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-    <h2 class="seq-item from-left font-display text-2xl md:text-3xl font-extrabold mb-4 lg:col-start-1 lg:row-start-1">Your people, <span class="text-teal">every morning</span></h2>
-    <p class="seq-item from-left text-ink-light mb-6 leading-relaxed lg:col-start-1 lg:row-start-2">
-      Open CADA and see what your circle's up to — who texted a friend, who hit the gym, who kept a streak alive. In seconds, you're back in each other's lives.
-    </p>
-    <div class="seq-item from-left flex gap-3 items-center text-sm lg:col-start-1">
-      <div class="w-8 h-8 skill-node flex items-center justify-center shrink-0"><span class="material-symbols-outlined sym sym-sm text-white">check</span></div>
-      <span>See each other's small wins — not performative posts</span>
-    </div>
-    <div class="seq-item from-left flex gap-3 items-center text-sm lg:col-start-1">
-      <div class="w-8 h-8 skill-node flex items-center justify-center shrink-0"><span class="material-symbols-outlined sym sym-sm text-white">check</span></div>
-      <span>Cheer with one tap when someone shows up</span>
-    </div>
-    <div class="seq-item from-left flex gap-3 items-center text-sm lg:col-start-1 mb-2">
-      <div class="w-8 h-8 skill-node flex items-center justify-center shrink-0"><span class="material-symbols-outlined sym sym-sm text-white">check</span></div>
-      <span>Daily presence, not monthly catch-ups</span>
-    </div>
-    <div class="seq-item from-left grid grid-cols-2 gap-3 max-w-xs lg:col-start-1">
-      <div class="rounded-card p-3 bg-[#E8873A] text-white text-sm" style="box-shadow:0 3px 0 #C06A20">
-        <div class="text-[9px] font-extrabold uppercase opacity-80 font-display">Crushed</div>
-        <div class="font-display font-extrabold">Text a Friend</div>
+  <div class="seq-section max-w-5xl mx-auto grid lg:grid-cols-2 gap-8 lg:gap-14 items-center">
+    <div class="seq-item from-left flex flex-col gap-4 lg:col-start-1">
+      <h2 class="font-display text-2xl md:text-3xl font-extrabold leading-tight">Your people, <span class="text-teal">every morning</span></h2>
+      <p class="text-ink-light leading-relaxed">
+        Open CADA and see what your circle's up to — who texted a friend, who hit the gym, who kept a streak alive. In seconds, you're back in each other's lives.
+      </p>
+      <ul class="flex flex-col gap-2.5" role="list">
+        <li class="flex gap-2.5 items-start text-sm leading-snug">
+          <div class="w-7 h-7 skill-node flex items-center justify-center shrink-0 mt-0.5"><span class="material-symbols-outlined sym sym-sm text-white">check</span></div>
+          <span>See each other's small wins — not performative posts</span>
+        </li>
+        <li class="flex gap-2.5 items-start text-sm leading-snug">
+          <div class="w-7 h-7 skill-node flex items-center justify-center shrink-0 mt-0.5"><span class="material-symbols-outlined sym sym-sm text-white">check</span></div>
+          <span>Cheer with one tap when someone shows up</span>
+        </li>
+        <li class="flex gap-2.5 items-start text-sm leading-snug">
+          <div class="w-7 h-7 skill-node flex items-center justify-center shrink-0 mt-0.5"><span class="material-symbols-outlined sym sym-sm text-white">check</span></div>
+          <span>Daily presence, not monthly catch-ups</span>
+        </li>
+      </ul>
+      <div class="grid grid-cols-2 gap-3 max-w-xs pt-1">
+        <div class="rounded-card p-3 bg-[#E8873A] text-white text-sm" style="box-shadow:0 3px 0 #C06A20">
+          <div class="text-[9px] font-extrabold uppercase opacity-80 font-display">Crushed</div>
+          <div class="font-display font-extrabold">Text a Friend</div>
+        </div>
+        <div class="rounded-card p-3 bg-[#4A8FE7] text-white text-sm" style="box-shadow:0 3px 0 #2A6FC7">
+          <div class="text-[9px] font-extrabold uppercase opacity-80 font-display">Knocked Out</div>
+          <div class="font-display font-extrabold">Gym</div>
+        </div>
       </div>
-      <div class="rounded-card p-3 bg-[#4A8FE7] text-white text-sm" style="box-shadow:0 3px 0 #2A6FC7">
-        <div class="text-[9px] font-extrabold uppercase opacity-80 font-display">Knocked Out</div>
-        <div class="font-display font-extrabold">Gym</div>
-      </div>
     </div>
-    <div class="seq-item from-right card-duo bg-teal-light border-teal/30 p-8 lg:col-start-2 lg:row-start-1 lg:row-span-6 lg:self-center">
+    <div class="seq-item from-right card-duo bg-teal-light border-teal/30 p-6 sm:p-8 lg:col-start-2 lg:row-start-1 lg:self-center">
       <div class="font-display text-6xl font-extrabold text-teal leading-none mb-2">15</div>
       <div class="font-display text-xl font-extrabold mb-4">seconds a day</div>
       <p class="text-ink-light text-sm mb-5 leading-relaxed">That's all it takes. Check in, scroll your circle's feed, send a cheer. Small enough to never skip. Meaningful enough to feel close — every single day.</p>
@@ -204,33 +236,37 @@
 </section>
 
 <!-- Ease of use -->
-<section class="py-16 px-5 bg-sky">
-  <div class="seq-section max-w-5xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-    <h2 class="seq-item font-display text-2xl md:text-3xl font-extrabold mb-4 lg:col-start-2 lg:row-start-1">Easy enough to <span class="text-teal">actually stick with</span></h2>
-    <p class="seq-item text-ink-light mb-6 leading-relaxed lg:col-start-2 lg:row-start-2">
-      No spreadsheets. No guilt trips. Just colorful habit tiles you tap when you're done — text a friend, call family, stretch, whatever keeps you close.
-    </p>
-    <div class="seq-item flex gap-3 items-center text-sm lg:col-start-2">
-      <div class="w-8 h-8 skill-node flex items-center justify-center shrink-0"><span class="material-symbols-outlined sym sym-sm text-white">check</span></div>
-      <span>Log any habit in two taps</span>
+<section class="py-14 sm:py-16 px-5 bg-sky">
+  <div class="seq-section max-w-5xl mx-auto grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
+    <div class="seq-item from-right flex flex-col gap-3 max-w-md mx-auto lg:mx-0 lg:ml-auto lg:col-start-2 lg:row-start-1 lg:justify-center">
+      <h2 class="font-display text-2xl md:text-3xl font-extrabold leading-tight">Easy enough to <span class="text-teal">actually stick with</span></h2>
+      <p class="text-ink-light leading-relaxed text-[15px] sm:text-base">
+        No spreadsheets. No guilt trips. Just colorful habit tiles you tap when you're done — text a friend, call family, stretch, whatever keeps you close.
+      </p>
+      <ul class="flex flex-col gap-2 py-1" role="list">
+        <li class="flex gap-2 items-start text-sm leading-snug">
+          <div class="w-7 h-7 skill-node flex items-center justify-center shrink-0 mt-0.5"><span class="material-symbols-outlined sym sym-sm text-white">check</span></div>
+          <span>Log any habit in two taps</span>
+        </li>
+        <li class="flex gap-2 items-start text-sm leading-snug">
+          <div class="w-7 h-7 skill-node flex items-center justify-center shrink-0 mt-0.5"><span class="material-symbols-outlined sym sym-sm text-white">check</span></div>
+          <span>See your progress at a glance</span>
+        </li>
+        <li class="flex gap-2 items-start text-sm leading-snug">
+          <div class="w-7 h-7 skill-node flex items-center justify-center shrink-0 mt-0.5"><span class="material-symbols-outlined sym sym-sm text-white">check</span></div>
+          <span>Small wins that feel good to finish</span>
+        </li>
+      </ul>
+      <p class="text-sm text-ink font-medium bg-white/70 border border-white rounded-card px-4 py-3 leading-snug">Built for real life — not another app you'll abandon in a week.</p>
     </div>
-    <div class="seq-item flex gap-3 items-center text-sm lg:col-start-2">
-      <div class="w-8 h-8 skill-node flex items-center justify-center shrink-0"><span class="material-symbols-outlined sym sym-sm text-white">check</span></div>
-      <span>See your progress at a glance</span>
-    </div>
-    <div class="seq-item flex gap-3 items-center text-sm lg:col-start-2 mb-2">
-      <div class="w-8 h-8 skill-node flex items-center justify-center shrink-0"><span class="material-symbols-outlined sym sym-sm text-white">check</span></div>
-      <span>Small wins that feel good to finish</span>
-    </div>
-    <p class="seq-item text-sm text-ink font-medium lg:col-start-2">Built for real life — not another app you'll abandon in a week.</p>
-    <div class="seq-item from-left flex justify-center relative lg:col-start-1 lg:row-start-1 lg:row-span-6 lg:self-center">
+    <div class="seq-item from-left flex justify-center relative lg:col-start-1 lg:row-start-1 lg:self-center">
       <div class="absolute -top-3 -right-1 sm:right-4 bg-white border-2 border-border rounded-card px-4 py-2 z-10 card-duo hidden sm:block animate-float">
         <div class="font-display font-extrabold text-teal text-xl">2 taps</div>
       </div>
       <div class="absolute -bottom-2 -left-1 sm:left-2 bg-coral text-white rounded-card px-3 py-2 z-10 hidden sm:block text-sm font-display font-extrabold animate-float-delayed" style="box-shadow:0 4px 0 #E08600">
         5/5 done <span class="material-symbols-outlined sym sym-sm align-middle">celebration</span>
       </div>
-      <div class="feed-phone-shell w-[280px] sm:w-[300px]">
+      <div class="feed-phone-shell feed-phone-shell--compact w-[220px] sm:w-[300px]">
         <div class="feed-phone-notch"></div>
         <div class="feed-phone-screen">
           <img src="../assets/habits-screen.png" alt="CADA My Habits screen showing simple habit tiles" width="390" height="844">
@@ -273,7 +309,7 @@
     </div>
     <div class="seq-item card-duo p-6">
       <p class="text-sm text-ink-light mb-4 leading-relaxed">"My mom, sister, and I have a circle. 'Text a Friend' became our way of saying I love you without the pressure of a long call."</p>
-      <div class="font-display font-extrabold text-sm text-teal">James, 34</div>
+      <div class="font-display font-extrabold text-sm text-teal">Conner, 34</div>
     </div>
   </div>
 </section>
@@ -307,6 +343,28 @@
   <p class="text-center text-xs text-ink-light mt-6">© 2026 CADA</p>
 </footer>
 
+<script type="module" src="../js/firebase-init.js"></script>
+<script>
+  (function () {
+    var btn = document.getElementById('mobile-menu-btn');
+    var menu = document.getElementById('mobile-menu');
+    var icon = document.getElementById('mobile-menu-icon');
+    if (btn && menu) {
+      function closeMenu() {
+        menu.hidden = true;
+        btn.setAttribute('aria-expanded', 'false');
+        if (icon) icon.textContent = 'menu';
+      }
+      function openMenu() {
+        menu.hidden = false;
+        btn.setAttribute('aria-expanded', 'true');
+        if (icon) icon.textContent = 'close';
+      }
+      btn.addEventListener('click', function () { menu.hidden ? openMenu() : closeMenu(); });
+      menu.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', closeMenu); });
+    }
+  })();
+</script>
 <script>
   (function () {
     const STEP = 160;

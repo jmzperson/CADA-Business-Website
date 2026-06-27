@@ -2,7 +2,7 @@
 <html class="scroll-smooth" lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Influencers & Communities | CADA</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -43,6 +43,14 @@
     .seq-item { opacity: 0; transform: translateY(16px); transition: opacity 0.8s cubic-bezier(0.22,1,0.36,1), transform 0.8s cubic-bezier(0.22,1,0.36,1); will-change: opacity, transform; }
     .seq-item.from-left { transform: translateX(-20px); }
     .seq-section.in-view .seq-item { opacity: 1; transform: none; }
+    @media (max-width: 767px) {
+      .seq-item { opacity: 1; transform: none; transition: none; }
+    }
+    .mobile-menu-drop { border-bottom: 2px solid #E5E5E5; background: #fff; box-shadow: 0 8px 16px rgba(0,0,0,0.06); }
+    .mobile-menu-drop a { display: block; padding: 0.875rem 1.25rem; font-weight: 700; font-family: 'Nunito', sans-serif; font-size: 0.9375rem; color: #3C3C3C; border-top: 1px solid #F0F0F0; }
+    .mobile-menu-drop a:first-child { border-top: none; }
+    .mobile-menu-drop a.menu-active { color: #1CB0C8; background: #DDF8FC; }
+    .nav-bar { padding-top: env(safe-area-inset-top, 0px); }
     @media (prefers-reduced-motion: reduce) {
       .nav-bar, .hero-in, .hero-card { animation: none; opacity: 1; transform: none; }
       .seq-item { opacity: 1; transform: none; transition: none; }
@@ -52,8 +60,8 @@
 <body class="bg-white font-body text-ink antialiased">
 
 <nav class="nav-bar fixed top-0 inset-x-0 z-50 bg-white border-b-2 border-border">
-  <div class="max-w-5xl mx-auto px-5 h-[60px] flex items-center justify-between">
-    <a href="../index.html" class="inline-flex shrink-0 items-center">
+  <div class="max-w-5xl mx-auto px-4 sm:px-5 h-[60px] flex items-center justify-between gap-2">
+    <a href="../index.html" class="inline-flex shrink-0 items-center min-w-0">
       <img src="../images/cada-logo.png" alt="CADA" class="h-8 w-auto" width="251" height="80" />
     </a>
     <div class="hidden md:flex items-center gap-6 text-sm font-bold text-ink-light">
@@ -61,12 +69,24 @@
       <a href="../cada_partnerships_page/code.html" class="hover:text-teal">Partnerships</a>
       <a href="code.html" class="text-teal">Influencers</a>
     </div>
-    <a href="https://apps.apple.com/us/app/cada-social-habit-tracker/id6756549174" target="_blank" rel="noopener noreferrer" class="btn-primary text-sm font-extrabold px-5 py-2.5 rounded-card font-display">GET THE APP</a>
+    <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+      <button type="button" id="mobile-menu-btn" class="md:hidden flex items-center justify-center w-9 h-9 rounded-card border-2 border-border text-ink" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
+        <span class="sym sym-md" id="mobile-menu-icon">menu</span>
+      </button>
+      <a href="https://apps.apple.com/us/app/cada-social-habit-tracker/id6756549174" target="_blank" rel="noopener noreferrer" class="btn-primary text-[11px] sm:text-sm font-extrabold px-3 sm:px-5 py-2 sm:py-2.5 rounded-card font-display whitespace-nowrap">GET THE APP</a>
+    </div>
+  </div>
+  <div id="mobile-menu" class="mobile-menu-drop md:hidden" hidden>
+    <nav class="max-w-5xl mx-auto" aria-label="Mobile">
+      <a href="../index.html">Home</a>
+      <a href="../cada_partnerships_page/code.html">Partnerships</a>
+      <a href="code.html" class="menu-active">Influencers</a>
+    </nav>
   </div>
 </nav>
 
-<section class="pt-28 pb-16 px-5 bg-gradient-to-b from-purple-light to-white">
-  <div class="max-w-5xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+<section class="pt-24 pb-16 px-5 bg-gradient-to-b from-purple-light to-white">
+  <div class="max-w-5xl mx-auto grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
     <div class="reveal-left">
       <div class="hero-in inline-flex items-center gap-2 bg-white border-2 border-coral/30 rounded-pill px-4 py-2 mb-6 card-duo">
         <span class="material-symbols-outlined sym sym-md text-coral">auto_awesome</span>
@@ -177,6 +197,28 @@
   <p class="mt-2">© 2026 CADA</p>
 </footer>
 
+<script type="module" src="../js/firebase-init.js"></script>
+<script>
+  (function () {
+    var btn = document.getElementById('mobile-menu-btn');
+    var menu = document.getElementById('mobile-menu');
+    var icon = document.getElementById('mobile-menu-icon');
+    if (btn && menu) {
+      function closeMenu() {
+        menu.hidden = true;
+        btn.setAttribute('aria-expanded', 'false');
+        if (icon) icon.textContent = 'menu';
+      }
+      function openMenu() {
+        menu.hidden = false;
+        btn.setAttribute('aria-expanded', 'true');
+        if (icon) icon.textContent = 'close';
+      }
+      btn.addEventListener('click', function () { menu.hidden ? openMenu() : closeMenu(); });
+      menu.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', closeMenu); });
+    }
+  })();
+</script>
 <script>
   (function () {
     const STEP = 160;

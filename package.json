@@ -1,0 +1,12 @@
+{
+  "name": "cada-website",
+  "private": true,
+  "scripts": {
+    "serve": "python3 -m http.server 8000",
+    "deploy": "firebase deploy --only hosting",
+    "deploy:preview": "firebase hosting:channel:deploy preview"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.35.1"
+  }
+}
