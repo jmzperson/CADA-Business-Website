@@ -1,5 +1,7 @@
 /**
- * CADA website form handler → Google Sheet + email
+ * Legacy single-tab form handler (tab: "Submissions").
+ * Prefer WebsiteForms.gs for the "Website Forms" spreadsheet with
+ * PArtnership Forms + INfluencer Forms tabs.
  *
  * SETUP:
  * 1. Create a new Google Sheet (e.g. "CADA Website Forms")
