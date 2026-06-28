@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { listLeads, updateLead } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
 import { verifyLeadsAdminToken } from "@/lib/leads/admin-auth";
+import type { LeadStatus } from "@/lib/db/types";
 
 export async function GET(request: Request) {
   try {
@@ -12,21 +13,14 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
 
-    const admin = createAdminClient();
-    let query = admin
-      .from("partnership_leads")
-      .select("id, company_name, email, message, status, brand_id, created_at, updated_at")
-      .order("created_at", { ascending: false })
-      .limit(200);
+    const leads = await listLeads(
+      status && ["new", "contacted", "signed_up"].includes(status)
+        ? (status as LeadStatus)
+        : undefined,
+      200
+    );
 
-    if (status && ["new", "contacted", "signed_up"].includes(status)) {
-      query = query.eq("status", status);
-    }
-
-    const { data, error } = await query;
-    if (error) return jsonError(error.message, 500);
-
-    return NextResponse.json({ leads: data ?? [] });
+    return NextResponse.json({ leads });
   } catch (err) {
     return handleApiError(err);
   }
@@ -52,15 +46,8 @@ export async function PATCH(request: Request) {
       return jsonError("Invalid status");
     }
 
-    const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("partnership_leads")
-      .update({ status: body.status, updated_at: new Date().toISOString() })
-      .eq("id", body.id)
-      .select("id, company_name, email, message, status, brand_id, created_at, updated_at")
-      .single();
-
-    if (error || !data) return jsonError(error?.message || "Update failed", 500);
+    const data = await updateLead(body.id, { status: body.status });
+    if (!data) return jsonError("Update failed", 500);
 
     return NextResponse.json({ lead: data });
   } catch (err) {

@@ -1,9 +1,23 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { adminAuth } from "@/lib/firebase/admin";
+import { signInWithEmailPassword } from "@/lib/firebase/auth-rest";
 import { BRAND_CATEGORIES, handleApiError, jsonError } from "@/lib/api";
 import { uniqueSlug } from "@/lib/utils";
-import { markLeadSignedUp } from "@/lib/leads/mark-signed-up";
+import {
+  brandSlugExists,
+  createBrand,
+  createBrandStaff,
+  deleteBrand,
+  markLeadsSignedUp,
+} from "@/lib/db";
+import { setPortalStaffClaims } from "@/lib/firebase/portal-claims";
+import {
+  createPortalSessionCookie,
+  PORTAL_SESSION_COOKIE,
+  portalSessionCookieOptions,
+} from "@/lib/firebase/session";
+import { sendNotificationEmail } from "@/lib/email/send-notification";
 
 type RegisterBody = {
   business_name?: string;
@@ -21,7 +35,7 @@ export async function POST(request: Request) {
     const email = body.email?.trim().toLowerCase();
     const password = body.password;
     const website = body.website?.trim() || null;
-    const category = body.category || "other";
+    const category = (body.category || "other") as "gym" | "food" | "wellness" | "retail" | "other";
     const logoUrl = body.logo_url?.trim() || null;
 
     if (!businessName || !email || !password) {
@@ -36,75 +50,73 @@ export async function POST(request: Request) {
       return jsonError("Invalid category");
     }
 
-    const admin = createAdminClient();
-    const slug = await uniqueSlug(businessName, async (candidate) => {
-      const { data } = await admin.from("brands").select("id").eq("slug", candidate).maybeSingle();
-      return Boolean(data);
-    });
-
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const skipVerification = process.env.SKIP_EMAIL_VERIFICATION === "true";
 
-    const { data: authData, error: authError } = await admin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: false,
-      user_metadata: { business_name: businessName },
-    });
+    const slug = await uniqueSlug(businessName, brandSlugExists);
 
-    if (authError || !authData.user) {
-      if (authError?.message?.includes("already")) {
+    let userRecord;
+    try {
+      userRecord = await adminAuth().createUser({
+        email,
+        password,
+        emailVerified: skipVerification,
+        displayName: businessName,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to create account";
+      if (message.toLowerCase().includes("already")) {
         return jsonError("An account with this email already exists", 409);
       }
-      return jsonError(authError?.message || "Failed to create account", 400);
+      return jsonError(message, 400);
     }
 
-    const userId = authData.user.id;
-
-    const { data: brand, error: brandError } = await admin
-      .from("brands")
-      .insert({
-        name: businessName,
-        slug,
-        category,
-        website,
-        logo_url: logoUrl,
-        status: "active",
-      })
-      .select("id, name, slug, status")
-      .single();
-
-    if (brandError || !brand) {
-      await admin.auth.admin.deleteUser(userId);
-      return jsonError(brandError?.message || "Failed to create brand", 500);
-    }
-
-    const { error: staffError } = await admin.from("brand_staff").insert({
-      brand_id: brand.id,
-      email,
-      role: "admin",
-      auth_user_id: userId,
-      accepted_at: new Date().toISOString(),
+    const brand = await createBrand({
+      name: businessName,
+      slug,
+      category,
+      website,
+      logo_url: logoUrl,
+      offer_default_copy: null,
+      primary_address: null,
+      status: "active",
     });
 
-    if (staffError) {
-      await admin.from("brands").delete().eq("id", brand.id);
-      await admin.auth.admin.deleteUser(userId);
-      return jsonError(staffError.message, 500);
+    try {
+      await createBrandStaff({
+        brand_id: brand.id,
+        email,
+        role: "admin",
+        auth_user_id: userRecord.uid,
+        invited_at: new Date().toISOString(),
+        accepted_at: new Date().toISOString(),
+        invite_token: null,
+        invite_expires_at: null,
+      });
+      await setPortalStaffClaims(userRecord.uid, { brandId: brand.id, staffRole: "admin" });
+    } catch (staffErr) {
+      await deleteBrand(brand.id, slug);
+      await adminAuth().deleteUser(userRecord.uid);
+      throw staffErr;
     }
 
-    await admin.auth.admin.generateLink({
-      type: "signup",
-      email,
-      password,
-      options: { redirectTo: `${appUrl}/verify-email` },
-    });
+    if (!skipVerification) {
+      const verifyLink = await adminAuth().generateEmailVerificationLink(email, {
+        url: `${appUrl}/verify-email`,
+      });
+      void sendNotificationEmail({
+        to: email,
+        subject: "Verify your CADA partner account",
+        text: `Welcome to CADA Partners.\n\nVerify your email:\n${verifyLink}\n\n— CADA`,
+      });
+    }
 
-    const supabase = await createClient();
-    await supabase.auth.signInWithPassword({ email, password });
+    const signIn = await signInWithEmailPassword(email, password);
+    const sessionCookie = await createPortalSessionCookie(signIn.idToken);
+    const cookieStore = await cookies();
+    cookieStore.set(PORTAL_SESSION_COOKIE, sessionCookie, portalSessionCookieOptions());
 
-    await markLeadSignedUp(admin, email, brand.id);
-
-    const skipVerification = process.env.SKIP_EMAIL_VERIFICATION === "true";
+    await markLeadsSignedUp(email, brand.id);
 
     return NextResponse.json(
       {

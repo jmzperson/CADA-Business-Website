@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth/session";
+import { adminStorage } from "@/lib/firebase/admin";
+import { firebasePublicConfig } from "@/lib/firebase/config";
 import { handleApiError, jsonError } from "@/lib/api";
 
 export async function POST(request: Request) {
@@ -28,22 +29,18 @@ export async function POST(request: Request) {
     }
 
     const ext = file.name.split(".").pop() || "png";
-    const path = `${staff.brandId}/logo.${ext}`;
-
-    const supabase = await createClient();
+    const path = `brand-logos/${staff.brandId}/logo.${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const { error: uploadError } = await supabase.storage
-      .from("brand-logos")
-      .upload(path, buffer, { upsert: true, contentType: file.type });
+    const bucket = adminStorage().bucket();
+    await bucket.file(path).save(buffer, {
+      contentType: file.type,
+      metadata: { cacheControl: "public, max-age=3600" },
+      resumable: false,
+    });
 
-    if (uploadError) {
-      return jsonError(uploadError.message, 500);
-    }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("brand-logos").getPublicUrl(path);
+    const bucketName = firebasePublicConfig.storageBucket || bucket.name;
+    const publicUrl = `https://storage.googleapis.com/${bucketName}/${path}`;
 
     return NextResponse.json({ logo_url: publicUrl });
   } catch (err) {

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getStaffContext, requireAdmin } from "@/lib/auth/session";
-import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  createBrandStaff,
+  getStaffByBrandEmail,
+  updateBrandStaff,
+} from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
 import { generateInviteToken } from "@/lib/utils";
 
@@ -22,14 +26,7 @@ export async function POST(request: Request) {
     if (!email) return jsonError("email is required");
     if (role !== "admin" && role !== "scanner") return jsonError("role must be admin or scanner");
 
-    const admin = createAdminClient();
-
-    const { data: existing } = await admin
-      .from("brand_staff")
-      .select("id, accepted_at")
-      .eq("brand_id", staff.brandId)
-      .eq("email", email)
-      .maybeSingle();
+    const existing = await getStaffByBrandEmail(staff.brandId, email);
 
     if (existing?.accepted_at) {
       return jsonError("This email is already on your team", 409);
@@ -39,33 +36,29 @@ export async function POST(request: Request) {
     const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const inviteUrl = `${appUrl}/invite?token=${inviteToken}`;
+    const invitedAt = new Date().toISOString();
 
     if (existing) {
-      const { error } = await admin
-        .from("brand_staff")
-        .update({
-          role,
-          invite_token: inviteToken,
-          invite_expires_at: inviteExpiresAt,
-          invited_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id);
-
-      if (error) return jsonError(error.message, 500);
-    } else {
-      const { error } = await admin.from("brand_staff").insert({
-        brand_id: staff.brandId,
-        email,
+      const updated = await updateBrandStaff(existing.id, {
         role,
         invite_token: inviteToken,
         invite_expires_at: inviteExpiresAt,
-        invited_at: new Date().toISOString(),
+        invited_at: invitedAt,
       });
-
-      if (error) return jsonError(error.message, 500);
+      if (!updated) return jsonError("Failed to update invite", 500);
+    } else {
+      await createBrandStaff({
+        brand_id: staff.brandId,
+        email,
+        role,
+        auth_user_id: null,
+        invite_token: inviteToken,
+        invite_expires_at: inviteExpiresAt,
+        invited_at: invitedAt,
+        accepted_at: null,
+      });
     }
 
-    // MVP: return invite URL for dev; production sends email via Supabase/Resend
     return NextResponse.json(
       {
         email,

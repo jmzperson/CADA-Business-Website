@@ -17,10 +17,23 @@ type Row = {
 function RedemptionsLogInner() {
   const searchParams = useSearchParams();
   const query = searchParams.toString();
+  const challengeId = searchParams.get("challenge_id");
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
   const [label, setLabel] = useState("");
+  const [challengeTitle, setChallengeTitle] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!challengeId) {
+      setChallengeTitle(null);
+      return;
+    }
+    fetch(`/api/brands/challenges/${challengeId}`)
+      .then((r) => r.json())
+      .then((json) => setChallengeTitle(json.challenge?.title ?? null))
+      .catch(() => setChallengeTitle(null));
+  }, [challengeId]);
 
   useEffect(() => {
     setLoading(true);
@@ -32,7 +45,7 @@ function RedemptionsLogInner() {
         setLabel(json.label || "");
       })
       .finally(() => setLoading(false));
-  }, [query]);
+  }, [query, challengeId]);
 
   return (
     <div>
@@ -47,12 +60,22 @@ function RedemptionsLogInner() {
           <div className="mt-2">
             <PageHeader
               eyebrow="Activity"
-              title="Redemptions"
+              title={challengeTitle ? `Redemptions · ${challengeTitle}` : "Redemptions"}
               description={`${total} redemption${total === 1 ? "" : "s"}${label ? ` · ${label}` : ""}`}
             />
           </div>
         </div>
-        <DateRangeFilter basePath="/dashboard/redemptions" />
+        <div className="flex flex-wrap items-center gap-2">
+          {challengeId && (
+            <Link
+              href="/dashboard/redemptions"
+              className="btn-secondary px-3 py-2 text-xs"
+            >
+              Clear challenge filter
+            </Link>
+          )}
+          <DateRangeFilter basePath="/dashboard/redemptions" />
+        </div>
       </div>
 
       <p className="mt-4 text-xs font-medium text-ink-light">

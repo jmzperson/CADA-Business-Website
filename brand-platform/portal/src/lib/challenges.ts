@@ -1,4 +1,12 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  countRedemptionsByChallenge,
+  expireEndedChallenges as expireEndedChallengesDb,
+  getChallengeById,
+  getChallengeForBrand as getChallengeForBrandDb,
+  listEnrollmentsByChallengeIds,
+  listIssuedQrRewardsByChallenge,
+  listRedemptionsByChallengeIds,
+} from "@/lib/db";
 
 export const HABIT_TYPES = [
   { value: "gym", label: "Gym", appLabel: "Knocked Out · Gym" },
@@ -185,87 +193,97 @@ export async function getChallengeMetrics(
   }
   if (challengeIds.length === 0) return result;
 
-  const admin = createAdminClient();
+  const enrollments = await listEnrollmentsByChallengeIds(challengeIds);
 
-  const { data: enrollments } = await admin
-    .from("user_challenge_enrollments")
-    .select("id, challenge_id, status")
-    .in("challenge_id", challengeIds);
-
-  const enrollmentIds: string[] = [];
-  const enrollmentToChallenge = new Map<string, string>();
-
-  for (const row of enrollments || []) {
+  for (const row of enrollments) {
     const m = result[row.challenge_id];
     if (!m) continue;
     m.enrolled_count += 1;
     if (row.status === "completed") m.completion_count += 1;
-    enrollmentIds.push(row.id);
-    enrollmentToChallenge.set(row.id, row.challenge_id);
   }
 
-  if (enrollmentIds.length === 0) return result;
+  const reds = await listRedemptionsByChallengeIds(challengeIds);
 
-  const { data: qrList } = await admin
-    .from("qr_rewards")
-    .select("id, enrollment_id")
-    .in("enrollment_id", enrollmentIds);
-
-  const qrIds = (qrList || []).map((q) => q.id);
-  const enrollmentByQr = new Map((qrList || []).map((q) => [q.id, q.enrollment_id]));
-
-  if (qrIds.length === 0) return result;
-
-  const { data: reds } = await admin
-    .from("redemptions")
-    .select("qr_reward_id")
-    .in("qr_reward_id", qrIds);
-
-  for (const r of reds || []) {
-    const enrollmentId = enrollmentByQr.get(r.qr_reward_id);
-    if (!enrollmentId) continue;
-    const challengeId = enrollmentToChallenge.get(enrollmentId);
-    if (challengeId && result[challengeId]) {
-      result[challengeId].redemption_count += 1;
-    }
+  for (const r of reds) {
+    const m = result[r.challenge_id];
+    if (m) m.redemption_count += 1;
   }
 
   return result;
 }
 
 export async function challengeHasRedemptions(challengeId: string): Promise<boolean> {
-  const admin = createAdminClient();
-  const { data: enrollments } = await admin
-    .from("user_challenge_enrollments")
-    .select("id")
-    .eq("challenge_id", challengeId);
-
-  const enrollmentIds = (enrollments || []).map((e) => e.id);
-  if (enrollmentIds.length === 0) return false;
-
-  const { data: qrList } = await admin
-    .from("qr_rewards")
-    .select("id")
-    .in("enrollment_id", enrollmentIds);
-
-  const qrIds = (qrList || []).map((q) => q.id);
-  if (qrIds.length === 0) return false;
-
-  const { count } = await admin
-    .from("redemptions")
-    .select("id", { count: "exact", head: true })
-    .in("qr_reward_id", qrIds);
-
-  return (count ?? 0) > 0;
+  return (await countRedemptionsByChallenge(challengeId)) > 0;
 }
 
 export async function getChallengeForBrand(challengeId: string, brandId: string) {
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("challenges")
-    .select("*")
-    .eq("id", challengeId)
-    .eq("brand_id", brandId)
-    .maybeSingle();
-  return data as ChallengeRow | null;
+  const row = await getChallengeForBrandDb(challengeId, brandId);
+  return row as ChallengeRow | null;
+}
+
+export type RedemptionUsage = {
+  redemption_count: number;
+  pending_issued_count: number;
+};
+
+export function isChallengeInDiscoveryWindow(
+  row: { starts_at: string; ends_at: string | null; status?: string },
+  now = new Date()
+): boolean {
+  if (row.status && row.status !== "active") return false;
+  if (new Date(row.starts_at) > now) return false;
+  if (row.ends_at && new Date(row.ends_at) <= now) return false;
+  return true;
+}
+
+export function isAtRedemptionCap(
+  maxRedemptions: number | null,
+  usage: RedemptionUsage
+): boolean {
+  if (maxRedemptions == null) return false;
+  return usage.redemption_count + usage.pending_issued_count >= maxRedemptions;
+}
+
+export function spotsRemaining(
+  maxRedemptions: number | null,
+  usage: RedemptionUsage
+): number | null {
+  if (maxRedemptions == null) return null;
+  return Math.max(0, maxRedemptions - usage.redemption_count - usage.pending_issued_count);
+}
+
+export async function getRedemptionUsageByChallenge(
+  challengeIds: string[]
+): Promise<Record<string, RedemptionUsage>> {
+  const result: Record<string, RedemptionUsage> = {};
+  for (const id of challengeIds) {
+    result[id] = { redemption_count: 0, pending_issued_count: 0 };
+  }
+  if (challengeIds.length === 0) return result;
+
+  const metrics = await getChallengeMetrics(challengeIds);
+  for (const id of challengeIds) {
+    result[id].redemption_count = metrics[id]?.redemption_count ?? 0;
+  }
+
+  for (const id of challengeIds) {
+    const pending = await listIssuedQrRewardsByChallenge(id);
+    result[id].pending_issued_count = pending.length;
+  }
+
+  return result;
+}
+
+export async function challengeCanIssueReward(challengeId: string): Promise<boolean> {
+  const challenge = await getChallengeById(challengeId);
+
+  if (!challenge) return false;
+
+  const usage = await getRedemptionUsageByChallenge([challengeId]);
+  return !isAtRedemptionCap(challenge.max_redemptions, usage[challengeId]);
+}
+
+/** Mark active challenges past ends_at as ended. Safe to run repeatedly. */
+export async function expireEndedChallenges(): Promise<number> {
+  return expireEndedChallengesDb();
 }

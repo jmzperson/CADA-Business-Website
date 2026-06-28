@@ -29,6 +29,7 @@ export default function NewChallengePage() {
         starts_at: values.starts_at,
         ends_at: values.ends_at || null,
         max_redemptions: values.max_redemptions ? Number(values.max_redemptions) : null,
+        ...(publish ? { submit_for_review: true } : {}),
       };
 
       const res = await fetch("/api/brands/challenges", {
@@ -39,21 +40,17 @@ export default function NewChallengePage() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.challenge?.id) {
+          router.push(
+            `/dashboard/challenges/${data.challenge.id}/edit?publish_error=${encodeURIComponent(data.error || "")}`
+          );
+          return;
+        }
         setError(data.error || "Failed to create challenge");
         return;
       }
 
       const id = data.challenge.id;
-
-      if (publish) {
-        const pubRes = await fetch(`/api/brands/challenges/${id}/publish`, { method: "POST" });
-        const pubData = await pubRes.json();
-        if (!pubRes.ok) {
-          router.push(`/dashboard/challenges/${id}/edit?publish_error=${encodeURIComponent(pubData.error || "")}`);
-          return;
-        }
-      }
-
       router.push(`/dashboard/challenges/${id}/edit`);
       router.refresh();
     } catch {

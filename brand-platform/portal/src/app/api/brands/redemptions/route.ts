@@ -13,13 +13,15 @@ export async function GET(request: Request) {
     const range = parseMetricsRange(searchParams);
     const page = Math.max(1, Number(searchParams.get("page") || 1));
     const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("page_size") || 25)));
+    const challengeId = searchParams.get("challenge_id")?.trim() || undefined;
 
     const { rows, total } = await getRedemptionsLog(
       staff.brandId,
       range.from,
       range.to,
       page,
-      pageSize
+      pageSize,
+      challengeId
     );
 
     return NextResponse.json({
@@ -29,6 +31,7 @@ export async function GET(request: Request) {
       label: range.label,
       page,
       page_size: pageSize,
+      challenge_id: challengeId ?? null,
       total,
       redemptions: rows,
     });

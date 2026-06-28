@@ -90,6 +90,34 @@ Single challenge with metrics.
 
 ---
 
+## GET `/api/brands/challenges/:id/redemptions`
+
+Paginated redemption log for one challenge. Each successful QR scan creates a row in `redemptions` with `challenge_id`, `staff_id`, and `redeemed_at`.
+
+**Roles:** admin, scanner
+
+**Query:** `page`, `page_size`, `range` / `from` / `to` (same as brand redemptions), or `all_time=true` for no date filter.
+
+**Response `200`**
+```json
+{
+  "challenge": { "id": "uuid", "title": "...", "status": "active" },
+  "total": 12,
+  "redemptions": [
+    {
+      "id": "uuid",
+      "redeemed_at": "2026-06-20T14:30:00Z",
+      "challenge_id": "uuid",
+      "challenge_title": "Try a class at Studio Flow",
+      "staff_email": "scanner@brand.com",
+      "user_label": "User #A1"
+    }
+  ]
+}
+```
+
+---
+
 ## PATCH `/api/brands/challenges/:id`
 
 Update challenge.
@@ -131,6 +159,7 @@ Submit for CADA review → `status: pending_review`, `submitted_at: now`. Does *
 - Required: title, habit_type, offer_headline, starts_at (same as former publish validation)
 - `ends_at` must be after `starts_at` if set
 - Clears `rejection_reason` on resubmit
+- Sets `status: pending_review` and emails `CHALLENGE_NOTIFY_EMAIL` (default `james@cadaapp.com`) via **Resend** (`RESEND_API_KEY`, `RESEND_FROM`)
 
 **Response `200`**
 ```json
@@ -149,12 +178,15 @@ Token: `CADA_ADMIN_TOKEN` (Bearer header or `?token=` query). Same pattern as pa
 | Endpoint | Purpose |
 |----------|---------|
 | `GET /api/admin/challenges?status=pending_review` | Approval queue (all brands) |
+| `GET /api/admin/challenges/:id` | Full challenge detail + brand + metrics |
 | `POST /api/admin/challenges/:id/approve` | → `active`, sets `published_at`, `reviewed_at`, `reviewed_by` |
 | `POST /api/admin/challenges/:id/reject` | → `rejected`, optional `rejection_reason` in body |
 
 **Web UI:** `/admin/challenges?token=YOUR_CADA_ADMIN_TOKEN`
 
-Approved challenges become visible in the mobile app (`GET /api/v1/challenges/available`). `pending_review`, `draft`, and `rejected` are excluded.
+Approved challenges become visible in the mobile app (`GET /api/v1/challenges/available`, `GET /api/v1/challenges/:id`). `pending_review`, `draft`, and `rejected` are excluded. Challenges past `ends_at` are auto-ended on discovery requests and via `POST /api/v1/cron/expire-challenges` (same `CRON_SECRET` as expire-rewards).
+
+`max_redemptions` is enforced across discovery, enrollment, reward issuance, and QR redeem. Available challenges include `spots_remaining` (null = unlimited).
 
 ---
 

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { handleApiError, jsonError } from "@/lib/api";
 import { validateHabitType } from "@/lib/challenges";
 import { processHabitCompleted } from "@/lib/mobile/attribution";
@@ -18,7 +17,7 @@ type Body = {
 export async function POST(request: Request) {
   try {
     const authUser = await requireAppUser(request);
-    const cadaUser = await ensureCadaUser(authUser.id);
+    const cadaUser = await ensureCadaUser(authUser.uid);
 
     const body = (await request.json()) as Body;
     const habitType = body.habit_type?.trim();

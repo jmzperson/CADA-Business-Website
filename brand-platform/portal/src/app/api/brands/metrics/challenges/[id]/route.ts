@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStaffContext } from "@/lib/auth/session";
+import { getChallengeForBrand } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getBrandMetrics } from "@/lib/metrics/aggregate";
 import { parseMetricsRange } from "@/lib/metrics/range";
 
@@ -13,15 +13,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     if (!staff) return jsonError("Unauthorized", 401);
 
     const { id: challengeId } = await params;
-    const admin = createAdminClient();
-
-    const { data: challenge } = await admin
-      .from("challenges")
-      .select("id, title, status")
-      .eq("id", challengeId)
-      .eq("brand_id", staff.brandId)
-      .maybeSingle();
-
+    const challenge = await getChallengeForBrand(challengeId, staff.brandId);
     if (!challenge) return jsonError("Challenge not found", 404);
 
     const { searchParams } = new URL(request.url);

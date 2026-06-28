@@ -5,7 +5,7 @@ import {
   getStaffContext,
   requireAdmin,
 } from "@/lib/auth/session";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { updateBrand } from "@/lib/db";
 import { BRAND_CATEGORIES, handleApiError, jsonError } from "@/lib/api";
 
 export async function GET() {
@@ -84,15 +84,8 @@ export async function PATCH(request: Request) {
       return jsonError("No valid fields to update");
     }
 
-    const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("brands")
-      .update(updates)
-      .eq("id", staff.brandId)
-      .select("*")
-      .single();
-
-    if (error || !data) return jsonError(error?.message || "Update failed", 500);
+    const data = await updateBrand(staff.brandId, updates);
+    if (!data) return jsonError("Update failed", 500);
 
     return NextResponse.json({
       brand: {

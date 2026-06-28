@@ -246,12 +246,13 @@ INSERT INTO qr_rewards (id, enrollment_id, brand_id, token_hash, status, issued_
   )
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO redemptions (id, qr_reward_id, brand_id, staff_id, location_id, redeemed_at, metadata) VALUES
+INSERT INTO redemptions (id, qr_reward_id, brand_id, staff_id, challenge_id, location_id, redeemed_at, metadata) VALUES
   (
     'r0000000-0000-4000-8000-000000000001',
     'q0000000-0000-4000-8000-000000000001',
     'a0000000-0000-4000-8000-000000000001',
     'a0000000-0000-4000-8000-000000000012',
+    'a0000000-0000-4000-8000-000000000021',
     'a0000000-0000-4000-8000-000000000002',
     now() - interval '16 days 4 hours',
     '{"user_agent": "seed", "ip_hash": "abc123"}'::jsonb
@@ -261,6 +262,7 @@ INSERT INTO redemptions (id, qr_reward_id, brand_id, staff_id, location_id, rede
     'q0000000-0000-4000-8000-000000000002',
     'a0000000-0000-4000-8000-000000000001',
     'a0000000-0000-4000-8000-000000000011',
+    'a0000000-0000-4000-8000-000000000021',
     'a0000000-0000-4000-8000-000000000002',
     now() - interval '13 days 2 hours',
     '{"user_agent": "seed"}'::jsonb
@@ -270,6 +272,7 @@ INSERT INTO redemptions (id, qr_reward_id, brand_id, staff_id, location_id, rede
     'q0000000-0000-4000-8000-000000000101',
     'b0000000-0000-4000-8000-000000000001',
     'b0000000-0000-4000-8000-000000000011',
+    'b0000000-0000-4000-8000-000000000021',
     NULL,
     now() - interval '4 days',
     '{}'::jsonb

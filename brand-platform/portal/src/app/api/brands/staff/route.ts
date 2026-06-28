@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStaffContext } from "@/lib/auth/session";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { listStaffByBrand } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
 
 export async function GET() {
@@ -8,17 +8,11 @@ export async function GET() {
     const staff = await getStaffContext();
     if (!staff) return jsonError("Unauthorized", 401);
 
-    const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("brand_staff")
-      .select("id, email, role, invited_at, accepted_at")
-      .eq("brand_id", staff.brandId)
-      .order("invited_at", { ascending: false });
-
-    if (error) return jsonError(error.message, 500);
+    const data = await listStaffByBrand(staff.brandId);
+    data.sort((a, b) => b.invited_at.localeCompare(a.invited_at));
 
     return NextResponse.json({
-      staff: (data || []).map((row) => ({
+      staff: data.map((row) => ({
         id: row.id,
         email: row.email,
         role: row.role,

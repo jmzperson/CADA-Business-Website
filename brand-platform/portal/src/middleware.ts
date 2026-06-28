@@ -1,5 +1,5 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { PORTAL_SESSION_COOKIE } from "@/lib/firebase/session";
 
 const PUBLIC_PATHS = [
   "/login",
@@ -11,6 +11,10 @@ const PUBLIC_PATHS = [
   "/admin/leads",
   "/admin/challenges",
   "/api/auth/login",
+  "/api/auth/logout",
+  "/api/auth/forgot-password",
+  "/api/auth/session-status",
+  "/api/auth/resend-verification",
   "/api/brands/register",
   "/api/brands/staff/accept",
   "/api/leads",
@@ -19,51 +23,23 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublic(pathname: string) {
-  return PUBLIC_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`)
-  );
+  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+/** Edge-safe middleware — cookie presence only; full verification runs in server routes/layouts. */
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const hasSession = Boolean(request.cookies.get(PORTAL_SESSION_COOKIE)?.value);
   const { pathname } = request.nextUrl;
 
-  // Mobile API v1 — Bearer auth handled in route handlers
   if (pathname.startsWith("/api/v1/")) {
-    return response;
+    return NextResponse.next();
   }
 
   if (pathname.startsWith("/api/") && isPublic(pathname)) {
-    return response;
+    return NextResponse.next();
   }
 
-  if (!user && !isPublic(pathname)) {
+  if (!hasSession && !isPublic(pathname)) {
     const url = request.nextUrl.clone();
     const nextPath = pathname + request.nextUrl.search;
     url.pathname = "/login";
@@ -71,46 +47,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const isRedeemLanding = pathname.startsWith("/r/");
-
-  const skipVerification = process.env.SKIP_EMAIL_VERIFICATION === "true";
-  const onboardingApi =
-    pathname === "/api/brands/me" ||
-    pathname === "/api/brands/logo";
-
-  const needsVerification =
-    user &&
-    !skipVerification &&
-    !user.email_confirmed_at &&
-    pathname !== "/verify-email" &&
-    !pathname.startsWith("/api/auth/") &&
-    !onboardingApi &&
-    !isRedeemLanding &&
-    pathname !== "/scan" &&
-    !pathname.startsWith("/verify-email");
-
-  if (needsVerification && !isPublic(pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/verify-email";
-    return NextResponse.redirect(url);
-  }
-
-  if (user && isPublic(pathname) && ["/login", "/signup"].includes(pathname)) {
+  if (hasSession && ["/login", "/signup"].includes(pathname)) {
     const url = request.nextUrl.clone();
     const next = request.nextUrl.searchParams.get("next");
-    const destination =
-      next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
-    url.pathname =
-      user.email_confirmed_at || skipVerification ? destination : "/verify-email";
-    if (!(user.email_confirmed_at || skipVerification) && next) {
-      url.searchParams.set("next", next);
-    } else {
-      url.search = "";
-    }
+    url.pathname = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

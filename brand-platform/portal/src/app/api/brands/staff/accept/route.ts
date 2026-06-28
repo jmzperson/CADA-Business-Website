@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { adminAuth } from "@/lib/firebase/admin";
+import { signInWithEmailPassword } from "@/lib/firebase/auth-rest";
+import {
+  createPortalSessionCookie,
+  PORTAL_SESSION_COOKIE,
+  portalSessionCookieOptions,
+} from "@/lib/firebase/session";
+import { setPortalStaffClaims } from "@/lib/firebase/portal-claims";
+import {
+  getBrandById,
+  getStaffByInviteToken,
+  updateBrandStaff,
+} from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
 
 type AcceptBody = {
@@ -16,28 +28,19 @@ export async function GET(request: Request) {
 
     if (!token) return jsonError("token is required");
 
-    const admin = createAdminClient();
-    const { data: invite } = await admin
-      .from("brand_staff")
-      .select("id, email, role, brand_id, invite_expires_at, accepted_at, brands(name)")
-      .eq("invite_token", token)
-      .maybeSingle();
-
+    const invite = await getStaffByInviteToken(token);
     if (!invite) return jsonError("Invalid invite", 404);
     if (invite.accepted_at) return jsonError("Invite already accepted", 409);
     if (invite.invite_expires_at && new Date(invite.invite_expires_at) < new Date()) {
       return jsonError("Invite has expired", 410);
     }
 
-    const brandName =
-      invite.brands && typeof invite.brands === "object" && "name" in invite.brands
-        ? (invite.brands as { name: string }).name
-        : "Brand";
+    const brand = await getBrandById(invite.brand_id);
 
     return NextResponse.json({
       email: invite.email,
       role: invite.role,
-      brand_name: brandName,
+      brand_name: brand?.name ?? "Brand",
       expires_at: invite.invite_expires_at,
     });
   } catch (err) {
@@ -59,13 +62,7 @@ export async function POST(request: Request) {
       return jsonError("Password must be at least 8 characters");
     }
 
-    const admin = createAdminClient();
-    const { data: invite } = await admin
-      .from("brand_staff")
-      .select("id, email, role, brand_id, invite_expires_at, accepted_at")
-      .eq("invite_token", token)
-      .maybeSingle();
-
+    const invite = await getStaffByInviteToken(token);
     if (!invite) return jsonError("Invalid invite", 404);
     if (invite.accepted_at) return jsonError("Invite already accepted", 409);
     if (invite.invite_expires_at && new Date(invite.invite_expires_at) < new Date()) {
@@ -75,49 +72,50 @@ export async function POST(request: Request) {
     const email = invite.email;
     let userId: string;
 
-    const { data: created, error: createError } = await admin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    });
-
-    if (createError) {
+    try {
+      const userRecord = await adminAuth().createUser({
+        email,
+        password,
+        emailVerified: true,
+      });
+      userId = userRecord.uid;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
       const alreadyRegistered =
-        createError.message.toLowerCase().includes("already") ||
-        createError.message.toLowerCase().includes("registered");
+        message.toLowerCase().includes("already") ||
+        message.toLowerCase().includes("exists");
 
       if (!alreadyRegistered) {
-        return jsonError(createError.message, 500);
+        return jsonError(message || "Failed to create account", 500);
       }
 
-      const { data: listed } = await admin.auth.admin.listUsers({ perPage: 1000 });
-      const existingUser = listed?.users.find((u) => u.email?.toLowerCase() === email);
-      if (!existingUser) {
+      try {
+        const existingUser = await adminAuth().getUserByEmail(email);
+        userId = existingUser.uid;
+        await adminAuth().updateUser(userId, { password });
+      } catch {
         return jsonError("Account exists but could not be linked. Contact support.", 500);
       }
-
-      userId = existingUser.id;
-      const { error: updateError } = await admin.auth.admin.updateUserById(userId, { password });
-      if (updateError) return jsonError(updateError.message, 500);
-    } else {
-      if (!created.user) return jsonError("Failed to create account", 500);
-      userId = created.user.id;
     }
 
-    const { error: updateError } = await admin
-      .from("brand_staff")
-      .update({
-        auth_user_id: userId,
-        accepted_at: new Date().toISOString(),
-        invite_token: null,
-        invite_expires_at: null,
-      })
-      .eq("id", invite.id);
+    const updated = await updateBrandStaff(invite.id, {
+      auth_user_id: userId,
+      accepted_at: new Date().toISOString(),
+      invite_token: null,
+      invite_expires_at: null,
+    });
 
-    if (updateError) return jsonError(updateError.message, 500);
+    if (!updated) return jsonError("Failed to accept invite", 500);
 
-    const supabase = await createClient();
-    await supabase.auth.signInWithPassword({ email, password });
+    await setPortalStaffClaims(userId, {
+      brandId: invite.brand_id,
+      staffRole: invite.role,
+    });
+
+    const signIn = await signInWithEmailPassword(email, password);
+    const sessionCookie = await createPortalSessionCookie(signIn.idToken);
+    const cookieStore = await cookies();
+    cookieStore.set(PORTAL_SESSION_COOKIE, sessionCookie, portalSessionCookieOptions());
 
     return NextResponse.json({
       message: "Invite accepted. Welcome to the team.",

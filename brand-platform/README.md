@@ -2,14 +2,18 @@
 
 PostgreSQL schema + RLS (Phase 1) and Next.js brand portal (Phase 2).
 
-## Phase 2 — Brand portal
+## Phase 2 — Brand portal (Firebase)
 
 ```bash
 cd brand-platform/portal
-cp .env.example .env.local   # add Supabase keys
+cp .env.example .env.local   # Firebase keys + service account
 npm install
 npm run dev
 ```
+
+**Backend:** Firebase Auth + Firestore + Storage (project `cada-4ed7c`). See [Firebase portal setup](portal/docs/firebase-portal-setup.md).
+
+Portal staff sign-in is **separate** from CADA app users (`brand_staff` vs `cada_users` collections).
 
 Open [http://localhost:3000](http://localhost:3000).
 
@@ -38,6 +42,16 @@ See [API reference](docs/api-phase3.md).
 ```
 
 Brand flow: **draft** → **Submit for review** → **pending_review** → CADA **approve** → **active** (visible in app).
+
+On submit for review, Resend emails `james@cadaapp.com` with challenge details and an admin review link. Portal env:
+
+```bash
+CHALLENGE_NOTIFY_EMAIL=james@cadaapp.com
+RESEND_API_KEY=re_...
+RESEND_FROM=CADA Partners <notifications@cadaapp.com>
+```
+
+Verify `cadaapp.com` in [Resend](https://resend.com) before production. See `scripts/setup-production.sh` for full checklist.
 
 ### Phase 4 — Mobile API (iOS)
 

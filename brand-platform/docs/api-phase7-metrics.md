@@ -47,7 +47,9 @@ Same KPIs scoped to one challenge (must belong to the signed-in brand).
 
 Paginated redemptions log.
 
-**Query:** same `range` / `from` / `to`, plus `page` (default 1) and `page_size` (default 25, max 100).
+**Query:** same `range` / `from` / `to`, plus `page` (default 1), `page_size` (default 25, max 100), and optional `challenge_id` to filter one campaign.
+
+Each row is written on successful QR redeem (`redemptions.challenge_id`, `staff_id`, `redeemed_at`).
 
 ```json
 {

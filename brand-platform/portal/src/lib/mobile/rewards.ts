@@ -1,4 +1,9 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { challengeCanIssueReward } from "@/lib/challenges";
+import {
+  createQrReward,
+  getQrRewardByEnrollment,
+  getQrRewardById,
+} from "@/lib/db";
 import {
   buildQrUrl,
   decryptToken,
@@ -25,10 +30,7 @@ export function qrTtlHours(): number {
 
 /**
  * Issue QR reward when enrollment reaches `completed`.
- * Idempotent: one qr_rewards row per enrollment (UNIQUE on enrollment_id).
- *
- * Token design: opaque random (256-bit) + SHA-256 hash in DB.
- * See docs/qr-integration-guide-ios.md for JWT tradeoff rationale.
+ * Idempotent: one qr_rewards row per enrollment.
  */
 export async function issueQrReward(params: {
   enrollmentId: string;
@@ -36,16 +38,14 @@ export async function issueQrReward(params: {
   userId: string;
   challengeId: string;
 }): Promise<IssuedReward> {
-  const admin = createAdminClient();
-
-  const { data: existing } = await admin
-    .from("qr_rewards")
-    .select("*")
-    .eq("enrollment_id", params.enrollmentId)
-    .maybeSingle();
-
+  const existing = await getQrRewardByEnrollment(params.enrollmentId);
   if (existing) {
     return toIssuedReward(existing);
+  }
+
+  const canIssue = await challengeCanIssueReward(params.challengeId);
+  if (!canIssue) {
+    throw new Error("redemption_cap_reached");
   }
 
   const rawToken = generateRawToken();
@@ -53,9 +53,8 @@ export async function issueQrReward(params: {
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + qrTtlHours() * 60 * 60 * 1000);
 
-  const { data: created, error } = await admin
-    .from("qr_rewards")
-    .insert({
+  try {
+    const created = await createQrReward({
       enrollment_id: params.enrollmentId,
       brand_id: params.brandId,
       user_id: params.userId,
@@ -65,38 +64,22 @@ export async function issueQrReward(params: {
       status: "issued",
       issued_at: issuedAt.toISOString(),
       expires_at: expiresAt.toISOString(),
-    })
-    .select("*")
-    .single();
-
-  if (error) {
-    if (error.code === "23505") {
-      const { data: raced } = await admin
-        .from("qr_rewards")
-        .select("*")
-        .eq("enrollment_id", params.enrollmentId)
-        .single();
-      if (raced) return toIssuedReward(raced);
-    }
-    throw new Error(error.message);
+      redeemed_at: null,
+    });
+    return toIssuedReward(created, rawToken);
+  } catch (err) {
+    const raced = await getQrRewardByEnrollment(params.enrollmentId);
+    if (raced) return toIssuedReward(raced);
+    throw err;
   }
-
-  return toIssuedReward(created, rawToken);
 }
 
 export async function getRewardForUser(
   rewardId: string,
   cadaUserId: string
 ): Promise<IssuedReward | null> {
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("qr_rewards")
-    .select("*")
-    .eq("id", rewardId)
-    .eq("user_id", cadaUserId)
-    .maybeSingle();
-
-  if (!data) return null;
+  const data = await getQrRewardById(rewardId);
+  if (!data || data.user_id !== cadaUserId) return null;
   return toIssuedReward(data);
 }
 

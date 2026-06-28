@@ -29,6 +29,10 @@ export const REDEEM_ERROR_UI: Record<string, { title: string; detail: string }> 
     title: "No longer valid",
     detail: "Contact CADA support if this seems wrong.",
   },
+  redemption_cap_reached: {
+    title: "Offer limit reached",
+    detail: "This challenge has hit its maximum redemptions.",
+  },
   unauthorized: {
     title: "Not signed in",
     detail: "Sign in as brand staff to scan.",

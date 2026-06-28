@@ -1,0 +1,87 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "challenges",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "brand_id", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "challenges",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "submitted_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "challenges",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "starts_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "brand_staff",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "brand_id", "order": "ASCENDING" },
+        { "fieldPath": "email", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "user_challenge_enrollments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "challenge_id", "order": "ASCENDING" },
+        { "fieldPath": "user_id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "qr_rewards",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "challenge_id", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "qr_rewards",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "brand_id", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "issued_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "redemptions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "brand_id", "order": "ASCENDING" },
+        { "fieldPath": "redeemed_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "redemptions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "brand_id", "order": "ASCENDING" },
+        { "fieldPath": "challenge_id", "order": "ASCENDING" },
+        { "fieldPath": "redeemed_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partnership_leads",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

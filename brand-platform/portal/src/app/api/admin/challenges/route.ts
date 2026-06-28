@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getBrandById, listChallengesByStatus } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
 import { verifyCadaAdminToken } from "@/lib/admin/auth";
 import { habitLabel } from "@/lib/challenge-form";
+import type { ChallengeStatus } from "@/lib/db/types";
 
 export async function GET(request: Request) {
   try {
@@ -11,40 +12,36 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status") || "pending_review";
+    const statusParam = searchParams.get("status") || "pending_review";
 
-    const admin = createAdminClient();
-    let query = admin
-      .from("challenges")
-      .select(
-        `
-        id,
-        title,
-        habit_type,
-        offer_headline,
-        status,
-        submitted_at,
-        rejection_reason,
-        brands ( id, name )
-      `
-      )
-      .order("submitted_at", { ascending: false, nullsFirst: false })
-      .limit(200);
-
-    if (status && status !== "all") {
-      query = query.eq("status", status);
+    let rows;
+    if (statusParam === "all") {
+      const statuses: ChallengeStatus[] = [
+        "draft",
+        "pending_review",
+        "rejected",
+        "active",
+        "ended",
+      ];
+      rows = (
+        await Promise.all(statuses.map((s) => listChallengesByStatus(s, 200)))
+      ).flat();
+      rows.sort((a, b) => (b.submitted_at ?? "").localeCompare(a.submitted_at ?? ""));
+    } else {
+      rows = await listChallengesByStatus(statusParam as ChallengeStatus, 200);
     }
 
-    const { data, error } = await query;
-    if (error) return jsonError(error.message, 500);
+    const brandIds = [...new Set(rows.map((r) => r.brand_id))];
+    const brands = await Promise.all(brandIds.map((id) => getBrandById(id)));
+    const brandById = new Map(brands.filter(Boolean).map((b) => [b!.id, b!]));
 
-    const challenges = (data ?? []).map((row) => {
-      const brand = row.brands as { id: string; name: string } | null;
+    const challenges = rows.map((row) => {
+      const brand = brandById.get(row.brand_id);
       return {
         id: row.id,
         title: row.title,
         habit_type: row.habit_type,
-        habit_label: habitLabel(row.habit_type as string),
+        habit_label: habitLabel(row.habit_type),
         offer_headline: row.offer_headline,
         status: row.status,
         submitted_at: row.submitted_at,

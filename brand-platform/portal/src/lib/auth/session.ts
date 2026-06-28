@@ -1,5 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getPortalSessionUser } from "@/lib/firebase/session";
+import { getBrandById, getStaffByAuthUserId } from "@/lib/db";
+import type { BrandDoc } from "@/lib/db/types";
 
 export type StaffRole = "admin" | "scanner";
 
@@ -9,62 +10,41 @@ export type StaffContext = {
   role: StaffRole;
   email: string;
   acceptedAt: string | null;
+  authUserId: string;
 };
 
-export type BrandProfile = {
-  id: string;
-  name: string;
-  slug: string;
-  logo_url: string | null;
-  category: string;
-  website: string | null;
-  offer_default_copy: string | null;
-  primary_address: string | null;
-  status: string;
-  created_at: string;
-};
+export type BrandProfile = BrandDoc;
 
 export async function getSessionUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  return getPortalSessionUser();
 }
 
 export async function isEmailVerified() {
   if (process.env.SKIP_EMAIL_VERIFICATION === "true") return true;
-  const user = await getSessionUser();
-  return Boolean(user?.email_confirmed_at);
+  const user = await getPortalSessionUser();
+  return Boolean(user?.email_verified);
 }
 
+/** Portal staff only — not CADA app users. */
 export async function getStaffContext(): Promise<StaffContext | null> {
-  const user = await getSessionUser();
+  const user = await getPortalSessionUser();
   if (!user) return null;
 
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("brand_staff")
-    .select("id, brand_id, role, email, accepted_at")
-    .eq("auth_user_id", user.id)
-    .not("accepted_at", "is", null)
-    .maybeSingle();
-
-  if (!data) return null;
+  const staff = await getStaffByAuthUserId(user.uid);
+  if (!staff || !staff.accepted_at) return null;
 
   return {
-    staffId: data.id,
-    brandId: data.brand_id,
-    role: data.role as StaffRole,
-    email: data.email,
-    acceptedAt: data.accepted_at,
+    staffId: staff.id,
+    brandId: staff.brand_id,
+    role: staff.role,
+    email: staff.email,
+    acceptedAt: staff.accepted_at,
+    authUserId: user.uid,
   };
 }
 
 export async function getBrandProfile(brandId: string): Promise<BrandProfile | null> {
-  const admin = createAdminClient();
-  const { data } = await admin.from("brands").select("*").eq("id", brandId).maybeSingle();
-  return data as BrandProfile | null;
+  return getBrandById(brandId);
 }
 
 export function requireAdmin(ctx: StaffContext) {

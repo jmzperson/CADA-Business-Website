@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createLead } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
 import { corsHeaders } from "@/lib/leads/cors";
 
@@ -34,28 +34,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("partnership_leads")
-      .insert({
-        company_name,
-        email,
-        message,
-        status: "new",
-      })
-      .select("id, company_name, email, status, created_at")
-      .single();
-
-    if (error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500, headers: corsHeaders(request) }
-      );
-    }
+    const data = await createLead({
+      company_name,
+      email,
+      message,
+      status: "new",
+    });
 
     return NextResponse.json(
       {
-        lead: data,
+        lead: {
+          id: data.id,
+          company_name: data.company_name,
+          email: data.email,
+          status: data.status,
+          created_at: data.created_at,
+        },
         message: "Thanks! We'll be in touch. You can also create your account now.",
         signup_url: signupUrl(email, company_name),
       },

@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getBrandById, listChallengesByBrand } from "@/lib/db";
 
 export type OnboardingStep = {
   id: "profile" | "challenge" | "publish";
@@ -15,20 +15,13 @@ export type OnboardingState = {
 };
 
 export async function getBrandOnboarding(brandId: string): Promise<OnboardingState> {
-  const admin = createAdminClient();
-
-  const [{ data: brand }, { data: challenges }] = await Promise.all([
-    admin
-      .from("brands")
-      .select("logo_url, website, category, offer_default_copy, primary_address")
-      .eq("id", brandId)
-      .single(),
-    admin.from("challenges").select("id, status").eq("brand_id", brandId),
+  const [brand, challengeRows] = await Promise.all([
+    getBrandById(brandId),
+    listChallengesByBrand(brandId),
   ]);
 
   const profileComplete = Boolean(brand?.logo_url || brand?.website || brand?.primary_address);
 
-  const challengeRows = challenges ?? [];
   const hasChallenges = challengeRows.length > 0;
   const hasPublished = challengeRows.some((c) => c.status === "active" || c.status === "ended");
 

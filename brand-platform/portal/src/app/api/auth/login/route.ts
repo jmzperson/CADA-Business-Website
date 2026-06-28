@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { getStaffContext } from "@/lib/auth/session";
+import { cookies } from "next/headers";
 import { handleApiError, jsonError } from "@/lib/api";
+import { signInWithEmailPassword } from "@/lib/firebase/auth-rest";
+import {
+  createPortalSessionCookie,
+  PORTAL_SESSION_COOKIE,
+  portalSessionCookieOptions,
+} from "@/lib/firebase/session";
 
 type LoginBody = {
   email?: string;
@@ -18,28 +23,30 @@ export async function POST(request: Request) {
       return jsonError("email and password are required");
     }
 
-    const supabase = await createClient();
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error || !data.user) {
+    let signIn;
+    try {
+      signIn = await signInWithEmailPassword(email, password);
+    } catch {
       return jsonError("Invalid email or password", 401);
     }
 
-    const staff = await getStaffContext();
-
+    const staff = await getStaffContextFromUid(signIn.localId, email);
     if (!staff) {
-      await supabase.auth.signOut();
       return jsonError(
         "No brand account found. Accept your staff invite or register a new brand.",
         403
       );
     }
 
+    const sessionCookie = await createPortalSessionCookie(signIn.idToken);
+    const cookieStore = await cookies();
+    cookieStore.set(PORTAL_SESSION_COOKIE, sessionCookie, portalSessionCookieOptions());
+
     return NextResponse.json({
       user: {
-        id: data.user.id,
-        email: data.user.email,
-        email_verified: Boolean(data.user.email_confirmed_at),
+        id: signIn.localId,
+        email: signIn.email ?? email,
+        email_verified: staff.emailVerified,
       },
       staff: {
         id: staff.staffId,
@@ -50,4 +57,19 @@ export async function POST(request: Request) {
   } catch (err) {
     return handleApiError(err);
   }
+}
+
+async function getStaffContextFromUid(authUid: string, email: string) {
+  const { getStaffByAuthUserId } = await import("@/lib/db");
+  const { adminAuth } = await import("@/lib/firebase/admin");
+  const staff = await getStaffByAuthUserId(authUid);
+  if (!staff || !staff.accepted_at) return null;
+  const user = await adminAuth().getUser(authUid);
+  return {
+    staffId: staff.id,
+    brandId: staff.brand_id,
+    role: staff.role,
+    email: staff.email || email,
+    emailVerified: user.emailVerified,
+  };
 }

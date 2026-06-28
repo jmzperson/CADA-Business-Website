@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html class="scroll-smooth" lang="en">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-E9QBRD59GR"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-E9QBRD59GR');
+  </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Influencers & Communities | CADA</title>
@@ -168,22 +177,23 @@
   <div class="seq-section max-w-md mx-auto">
     <h2 class="seq-item font-display text-3xl font-extrabold text-center mb-2">Start your community circle</h2>
     <p class="seq-item text-ink-light text-center text-sm mb-8">Tell us about your audience — we'll help you launch.</p>
-    <form class="seq-item card-duo p-6 space-y-4" onsubmit="event.preventDefault(); alert('Application received! We\'ll be in touch.');">
+    <form id="creator-form" data-cada-form="creator" class="seq-item card-duo p-6 space-y-4">
+      <div data-form-status class="hidden rounded-card px-4 py-3 text-sm font-medium"></div>
       <div>
-        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display">Your name</label>
-        <input type="text" class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-purple outline-none" placeholder="Full name">
+        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display" for="creator-name">Your name</label>
+        <input id="creator-name" name="name" type="text" required class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-purple outline-none" placeholder="Full name">
       </div>
       <div>
-        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display">Email</label>
-        <input type="email" class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-purple outline-none" placeholder="you@email.com">
+        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display" for="creator-email">Email</label>
+        <input id="creator-email" name="email" type="email" required class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-purple outline-none" placeholder="you@email.com">
       </div>
       <div>
-        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display">Your handle</label>
-        <input type="text" class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-purple outline-none" placeholder="@you · TikTok, IG, podcast, etc.">
+        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display" for="creator-handle">Your handle</label>
+        <input id="creator-handle" name="handle" type="text" class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-purple outline-none" placeholder="@you · TikTok, IG, podcast, etc.">
       </div>
       <div>
-        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display">Your community</label>
-        <textarea rows="3" class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-purple outline-none resize-none" placeholder="Who follows you? What kind of circle would they build together?"></textarea>
+        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display" for="creator-community">Your community</label>
+        <textarea id="creator-community" name="community" rows="3" required class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-purple outline-none resize-none" placeholder="Who follows you? What kind of circle would they build together?"></textarea>
       </div>
       <button type="submit" class="w-full btn-coral font-display font-extrabold py-4 rounded-card text-lg">SUBMIT!</button>
     </form>
@@ -197,7 +207,7 @@
   <p class="mt-2">© 2026 CADA</p>
 </footer>
 
-<script type="module" src="../js/firebase-init.js"></script>
+<script src="../js/site-forms.js"></script>
 <script>
   (function () {
     var btn = document.getElementById('mobile-menu-btn');

@@ -35,6 +35,9 @@ export default function EditChallengePage() {
 
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [values, setValues] = useState<ChallengeFormValues | null>(null);
+  const [recentRedemptions, setRecentRedemptions] = useState<
+    { id: string; redeemed_at: string; staff_email: string; user_label: string | null }[]
+  >([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -105,6 +108,13 @@ export default function EditChallengePage() {
           ends_at: c.ends_at ? toDatetimeLocal(c.ends_at) : "",
           max_redemptions: c.max_redemptions ? String(c.max_redemptions) : "",
         });
+
+        if (c.status === "active" || c.status === "ended") {
+          fetch(`/api/brands/challenges/${id}/redemptions?all_time=true&page_size=5`)
+            .then((r) => r.json())
+            .then((json) => setRecentRedemptions(json.redemptions || []))
+            .catch(() => setRecentRedemptions([]));
+        }
       })
       .catch(() => setError("Failed to load challenge"));
   }, [id]);
@@ -327,8 +337,57 @@ export default function EditChallengePage() {
         <div className="rounded-lg border border-surface-border bg-white px-4 py-3">
           <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">Redemptions</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums text-ink">{challenge.redemption_count}</p>
+          {challenge.max_redemptions != null && (
+            <p className="mt-0.5 text-xs font-medium text-ink-light">
+              of {challenge.max_redemptions} max
+            </p>
+          )}
         </div>
       </div>
+
+      {(isActive || challenge.status === "ended") && (
+        <div className="card mt-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-lg font-extrabold text-ink">Recent redemptions</h2>
+            {challenge.redemption_count > 0 && (
+              <Link
+                href={`/dashboard/redemptions?challenge_id=${id}`}
+                className="font-display text-sm font-extrabold text-teal hover:underline"
+              >
+                View all
+              </Link>
+            )}
+          </div>
+          {recentRedemptions.length === 0 ? (
+            <p className="mt-3 text-sm font-medium text-ink-light">
+              No redemptions yet. They appear here when staff scan a customer QR.
+            </p>
+          ) : (
+            <div className="table-shell mt-4">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 font-display font-extrabold">Redeemed at</th>
+                    <th className="px-4 py-2 font-display font-extrabold">Staff</th>
+                    <th className="px-4 py-2 font-display font-extrabold">User</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentRedemptions.map((row) => (
+                    <tr key={row.id}>
+                      <td className="px-4 py-2 font-medium text-ink">
+                        {new Date(row.redeemed_at).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2 text-ink-muted">{row.staff_email}</td>
+                      <td className="px-4 py-2 text-ink-muted">{row.user_label ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="card mt-6">
         <ChallengeForm

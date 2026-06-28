@@ -1,5 +1,14 @@
-import { createAdminClient } from "@/lib/supabase/admin";
 import type { HabitType } from "@/lib/challenges";
+import { challengeCanIssueReward } from "@/lib/challenges";
+import {
+  createHabitEvent,
+  getChallengeById,
+  getEnrollmentById,
+  getHabitEventBySource,
+  listEnrollmentsByUser,
+  listHabitEventsByEnrollment,
+  updateEnrollment,
+} from "@/lib/db";
 import { issueQrReward, type IssuedReward } from "@/lib/mobile/rewards";
 import { completionRequired } from "@/lib/mobile/serialize";
 
@@ -18,6 +27,7 @@ export type HabitCompletedResult = {
   enrollment_status?: string;
   completion_count?: number;
   reward?: IssuedReward;
+  reward_blocked_reason?: string;
 };
 
 type EnrollmentWithChallenge = {
@@ -26,6 +36,7 @@ type EnrollmentWithChallenge = {
   user_id: string;
   status: string;
   completion_count: number;
+  enrolled_at: string;
   challenges: {
     id: string;
     brand_id: string;
@@ -45,14 +56,7 @@ export async function processHabitCompleted(
   cadaUserId: string,
   input: HabitCompletedInput
 ): Promise<HabitCompletedResult> {
-  const admin = createAdminClient();
-
-  const { data: existingEvent } = await admin
-    .from("habit_completion_events")
-    .select("id, enrollment_id, completed_at")
-    .eq("user_id", cadaUserId)
-    .eq("source_event_id", input.source_event_id)
-    .maybeSingle();
+  const existingEvent = await getHabitEventBySource(cadaUserId, input.source_event_id);
 
   if (existingEvent) {
     return replayFromExistingEvent(cadaUserId, existingEvent.enrollment_id, input.source_event_id);
@@ -71,7 +75,7 @@ export async function processHabitCompleted(
   );
 
   if (!enrollment) {
-    await admin.from("habit_completion_events").insert({
+    await createHabitEvent({
       user_id: cadaUserId,
       habit_type: input.habit_type,
       completed_at: completedAt.toISOString(),
@@ -82,7 +86,7 @@ export async function processHabitCompleted(
   }
 
   if (enrollment.status === "completed") {
-    await admin.from("habit_completion_events").insert({
+    await createHabitEvent({
       user_id: cadaUserId,
       habit_type: input.habit_type,
       completed_at: completedAt.toISOString(),
@@ -93,7 +97,7 @@ export async function processHabitCompleted(
   }
 
   if (enrollment.status === "dropped") {
-    await admin.from("habit_completion_events").insert({
+    await createHabitEvent({
       user_id: cadaUserId,
       habit_type: input.habit_type,
       completed_at: completedAt.toISOString(),
@@ -108,7 +112,7 @@ export async function processHabitCompleted(
     utcDateKey(completedAt.toISOString())
   );
   if (dailyBlocked) {
-    await admin.from("habit_completion_events").insert({
+    await createHabitEvent({
       user_id: cadaUserId,
       habit_type: input.habit_type,
       completed_at: completedAt.toISOString(),
@@ -118,22 +122,20 @@ export async function processHabitCompleted(
     return { attributed: false, reason: "daily_cap_reached" };
   }
 
-  const { error: insertError } = await admin.from("habit_completion_events").insert({
-    user_id: cadaUserId,
-    habit_type: input.habit_type,
-    completed_at: completedAt.toISOString(),
-    source_event_id: input.source_event_id,
-    enrollment_id: enrollment.id,
-  });
-
-  if (insertError) {
-    if (insertError.code === "23505") {
-      if (insertError.message.includes("habit_completion_events_source_unique")) {
-        return replayFromExistingEvent(cadaUserId, null, input.source_event_id);
-      }
-      return { attributed: false, reason: "daily_cap_reached" };
+  try {
+    await createHabitEvent({
+      user_id: cadaUserId,
+      habit_type: input.habit_type,
+      completed_at: completedAt.toISOString(),
+      source_event_id: input.source_event_id,
+      enrollment_id: enrollment.id,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "";
+    if (message.includes("already exists") || message.includes("ALREADY_EXISTS")) {
+      return replayFromExistingEvent(cadaUserId, null, input.source_event_id);
     }
-    throw new Error(insertError.message);
+    throw err;
   }
 
   const rule = enrollment.challenges.completion_rule;
@@ -150,25 +152,25 @@ export async function processHabitCompleted(
     enrollmentUpdate.completed_at = completedAt.toISOString();
   }
 
-  const { data: updatedEnrollment, error: updateError } = await admin
-    .from("user_challenge_enrollments")
-    .update(enrollmentUpdate)
-    .eq("id", enrollment.id)
-    .select("id, status, completion_count")
-    .single();
-
-  if (updateError || !updatedEnrollment) {
-    throw new Error(updateError?.message || "Failed to update enrollment");
+  const updatedEnrollment = await updateEnrollment(enrollment.id, enrollmentUpdate);
+  if (!updatedEnrollment) {
+    throw new Error("Failed to update enrollment");
   }
 
   let reward: IssuedReward | undefined;
+  let rewardBlockedReason: string | undefined;
   if (isComplete) {
-    reward = await issueQrReward({
-      enrollmentId: enrollment.id,
-      brandId: enrollment.challenges.brand_id,
-      userId: cadaUserId,
-      challengeId: enrollment.challenge_id,
-    });
+    const canIssue = await challengeCanIssueReward(enrollment.challenge_id);
+    if (canIssue) {
+      reward = await issueQrReward({
+        enrollmentId: enrollment.id,
+        brandId: enrollment.challenges.brand_id,
+        userId: cadaUserId,
+        challengeId: enrollment.challenge_id,
+      });
+    } else {
+      rewardBlockedReason = "redemption_cap_reached";
+    }
   }
 
   return {
@@ -177,6 +179,7 @@ export async function processHabitCompleted(
     enrollment_status: updatedEnrollment.status,
     completion_count: updatedEnrollment.completion_count,
     reward,
+    reward_blocked_reason: rewardBlockedReason,
   };
 }
 
@@ -185,52 +188,32 @@ async function replayFromExistingEvent(
   enrollmentId: string | null,
   sourceEventId: string
 ): Promise<HabitCompletedResult> {
-  const admin = createAdminClient();
-
-  const { data: event } = await admin
-    .from("habit_completion_events")
-    .select("enrollment_id")
-    .eq("user_id", cadaUserId)
-    .eq("source_event_id", sourceEventId)
-    .single();
-
+  const event = await getHabitEventBySource(cadaUserId, sourceEventId);
   const eid = event?.enrollment_id ?? enrollmentId;
   if (!eid) {
     return { attributed: false, idempotent_replay: true, reason: "no_attribution" };
   }
 
-  const { data: enrollment } = await admin
-    .from("user_challenge_enrollments")
-    .select("id, status, completion_count, challenges(brand_id)")
-    .eq("id", eid)
-    .maybeSingle();
-
+  const enrollment = await getEnrollmentById(eid);
   if (!enrollment) {
     return { attributed: false, idempotent_replay: true, reason: "no_attribution" };
   }
 
   let reward: IssuedReward | undefined;
   if (enrollment.status === "completed") {
-    const brandId =
-      enrollment.challenges &&
-      typeof enrollment.challenges === "object" &&
-      "brand_id" in enrollment.challenges
-        ? (enrollment.challenges as { brand_id: string }).brand_id
-        : "";
+    const challenge = await getChallengeById(enrollment.challenge_id);
+    const brandId = challenge?.brand_id ?? "";
 
-    const { data: enrollmentRow } = await admin
-      .from("user_challenge_enrollments")
-      .select("challenge_id, user_id")
-      .eq("id", enrollment.id)
-      .single();
-
-    if (brandId && enrollmentRow) {
-      reward = await issueQrReward({
-        enrollmentId: enrollment.id,
-        brandId,
-        userId: enrollmentRow.user_id,
-        challengeId: enrollmentRow.challenge_id,
-      });
+    if (brandId) {
+      const canIssue = await challengeCanIssueReward(enrollment.challenge_id);
+      if (canIssue) {
+        reward = await issueQrReward({
+          enrollmentId: enrollment.id,
+          brandId,
+          userId: enrollment.user_id,
+          challengeId: enrollment.challenge_id,
+        });
+      }
     }
   }
 
@@ -250,63 +233,48 @@ async function findEnrollmentToAttribute(
   challengeId: string | undefined,
   completedAt: Date
 ): Promise<EnrollmentWithChallenge | null> {
-  const admin = createAdminClient();
   const now = completedAt.toISOString();
+  const enrollments = await listEnrollmentsByUser(cadaUserId);
 
-  let query = admin
-    .from("user_challenge_enrollments")
-    .select(
-      `
-      id,
-      challenge_id,
-      user_id,
-      status,
-      completion_count,
-      enrolled_at,
-      challenges!inner (
-        id,
-        brand_id,
-        habit_type,
-        status,
-        completion_rule,
-        starts_at,
-        ends_at
-      )
-    `
-    )
-    .eq("user_id", cadaUserId)
-    .eq("status", "active")
-    .eq("challenges.habit_type", habitType)
-    .eq("challenges.status", "active")
-    .lte("challenges.starts_at", now);
+  const candidates: EnrollmentWithChallenge[] = [];
+  for (const row of enrollments) {
+    if (row.status !== "active") continue;
+    if (challengeId && row.challenge_id !== challengeId) continue;
 
-  if (challengeId) {
-    query = query.eq("challenge_id", challengeId);
+    const challenge = await getChallengeById(row.challenge_id);
+    if (!challenge) continue;
+    if (challenge.habit_type !== habitType) continue;
+    if (challenge.status !== "active") continue;
+    if (challenge.starts_at > now) continue;
+    if (challenge.ends_at && new Date(challenge.ends_at) <= completedAt) continue;
+
+    candidates.push({
+      id: row.id,
+      challenge_id: row.challenge_id,
+      user_id: row.user_id,
+      status: row.status,
+      completion_count: row.completion_count,
+      enrolled_at: row.enrolled_at,
+      challenges: {
+        id: challenge.id,
+        brand_id: challenge.brand_id,
+        habit_type: challenge.habit_type,
+        status: challenge.status,
+        completion_rule: challenge.completion_rule,
+        starts_at: challenge.starts_at,
+        ends_at: challenge.ends_at,
+      },
+    });
   }
 
-  const { data } = await query.order("enrolled_at", { ascending: true });
-
-  const rows = (data || []) as unknown as EnrollmentWithChallenge[];
-
-  return (
-    rows.find((row) => {
-      const c = row.challenges;
-      if (!c) return false;
-      if (c.ends_at && new Date(c.ends_at) <= completedAt) return false;
-      return true;
-    }) ?? null
-  );
+  candidates.sort((a, b) => a.enrolled_at.localeCompare(b.enrolled_at));
+  return candidates[0] ?? null;
 }
 
 async function hasAttributedCompletionOnDate(
   enrollmentId: string,
   dateKey: string
 ): Promise<boolean> {
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("habit_completion_events")
-    .select("id, completed_at")
-    .eq("enrollment_id", enrollmentId);
-
-  return (data || []).some((row) => utcDateKey(row.completed_at) === dateKey);
+  const events = await listHabitEventsByEnrollment(enrollmentId);
+  return events.some((row) => utcDateKey(row.completed_at) === dateKey);
 }

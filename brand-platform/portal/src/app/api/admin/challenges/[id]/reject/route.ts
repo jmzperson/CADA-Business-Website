@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getChallengeById, updateChallenge } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
 import { verifyCadaAdminToken } from "@/lib/admin/auth";
 
@@ -16,36 +16,29 @@ export async function POST(request: Request, { params }: RouteParams) {
     const body = (await request.json().catch(() => ({}))) as Body;
     const reason = body.reason?.trim() || null;
 
-    const admin = createAdminClient();
-    const now = new Date().toISOString();
-
-    const { data: row } = await admin
-      .from("challenges")
-      .select("id, status")
-      .eq("id", id)
-      .maybeSingle();
-
+    const row = await getChallengeById(id);
     if (!row) return jsonError("Challenge not found", 404);
     if (row.status !== "pending_review") {
       return jsonError("Only pending_review challenges can be rejected", 409);
     }
 
-    const { data: updated, error } = await admin
-      .from("challenges")
-      .update({
-        status: "rejected",
-        reviewed_at: now,
-        reviewed_by: "CADA_ADMIN",
-        rejection_reason: reason,
-      })
-      .eq("id", id)
-      .select("id, title, status, rejection_reason")
-      .single();
+    const now = new Date().toISOString();
+    const updated = await updateChallenge(id, {
+      status: "rejected",
+      reviewed_at: now,
+      reviewed_by: "CADA_ADMIN",
+      rejection_reason: reason,
+    });
 
-    if (error || !updated) return jsonError(error?.message || "Reject failed", 500);
+    if (!updated) return jsonError("Reject failed", 500);
 
     return NextResponse.json({
-      challenge: updated,
+      challenge: {
+        id: updated.id,
+        title: updated.title,
+        status: updated.status,
+        rejection_reason: updated.rejection_reason,
+      },
       message: "Challenge rejected. Brand can edit and resubmit.",
     });
   } catch (err) {

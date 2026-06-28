@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { confirmPasswordReset } from "firebase/auth";
+import { getFirebaseAuth } from "@/lib/firebase/client";
 import { AuthShell, Alert } from "@/components/auth-shell";
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const oobCode = searchParams.get("oobCode");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
@@ -15,6 +18,11 @@ export default function ResetPasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!oobCode) {
+      setError("Invalid or expired reset link. Request a new one.");
+      return;
+    }
 
     if (password !== confirm) {
       setError("Passwords do not match");
@@ -27,17 +35,14 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true);
-    const supabase = createClient();
-    const { error: updateError } = await supabase.auth.updateUser({ password });
-
-    if (updateError) {
-      setError(updateError.message);
+    try {
+      await confirmPasswordReset(getFirebaseAuth(), oobCode, password);
+      router.push("/login?reset=1");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reset password");
       setLoading(false);
-      return;
     }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (
@@ -77,5 +82,13 @@ export default function ResetPasswordPage() {
         </button>
       </form>
     </AuthShell>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<AuthShell title="Set new password"><p className="text-sm text-ink-muted">Loading…</p></AuthShell>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

@@ -9,6 +9,8 @@ export type AvailableChallenge = {
   offer_code: string | null;
   starts_at: string;
   ends_at: string | null;
+  /** Null when the challenge has no redemption cap. */
+  spots_remaining: number | null;
   brand: {
     id: string;
     name: string;
@@ -73,23 +75,27 @@ export function formatRewardForApi(reward: {
   };
 }
 
-export function serializeAvailableChallenge(row: {
-  id: string;
-  title: string;
-  description: string;
-  habit_type: string;
-  offer_headline: string;
-  offer_code: string | null;
-  starts_at: string;
-  ends_at: string | null;
-  brands: {
+export function serializeAvailableChallenge(
+  row: {
     id: string;
-    name: string;
-    slug: string;
-    logo_url: string | null;
-    category: string;
-  };
-}): AvailableChallenge {
+    title: string;
+    description: string;
+    habit_type: string;
+    offer_headline: string;
+    offer_code: string | null;
+    starts_at: string;
+    ends_at: string | null;
+    max_redemptions?: number | null;
+    brands: {
+      id: string;
+      name: string;
+      slug: string;
+      logo_url: string | null;
+      category: string;
+    };
+  },
+  spotsRemaining: number | null = null
+): AvailableChallenge {
   return {
     id: row.id,
     title: row.title,
@@ -99,6 +105,7 @@ export function serializeAvailableChallenge(row: {
     offer_code: row.offer_code,
     starts_at: row.starts_at,
     ends_at: row.ends_at,
+    spots_remaining: spotsRemaining,
     brand: {
       id: row.brands.id,
       name: row.brands.name,

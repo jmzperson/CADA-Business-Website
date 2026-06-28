@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getStaffContext } from "@/lib/auth/session";
-import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  countEnrollmentsForChallenge,
+  deleteChallenge,
+  updateChallenge,
+} from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
 import {
   challengeHasRedemptions,
@@ -91,16 +95,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return jsonError("No valid fields to update");
     }
 
-    const admin = createAdminClient();
-    const { data: updated, error } = await admin
-      .from("challenges")
-      .update(data)
-      .eq("id", id)
-      .eq("brand_id", staff.brandId)
-      .select("*")
-      .single();
-
-    if (error || !updated) return jsonError(error?.message || "Update failed", 500);
+    const updated = await updateChallenge(id, data);
+    if (!updated) return jsonError("Update failed", 500);
 
     const metrics = await getChallengeMetrics([id]);
 
@@ -135,24 +131,11 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
       return jsonError("Cannot delete a challenge with redemptions", 409);
     }
 
-    const admin = createAdminClient();
-
-    const { count } = await admin
-      .from("user_challenge_enrollments")
-      .select("id", { count: "exact", head: true })
-      .eq("challenge_id", id);
-
-    if ((count ?? 0) > 0) {
+    if ((await countEnrollmentsForChallenge(id)) > 0) {
       return jsonError("Cannot delete a challenge with enrollments", 409);
     }
 
-    const { error } = await admin
-      .from("challenges")
-      .delete()
-      .eq("id", id)
-      .eq("brand_id", staff.brandId);
-
-    if (error) return jsonError(error.message, 500);
+    await deleteChallenge(id);
 
     return NextResponse.json({ ok: true });
   } catch (err) {

@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
 import { getStaffContext } from "@/lib/auth/session";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getBrandById } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
-import {
-  getChallengeForBrand,
-  getChallengeMetrics,
-  serializeChallenge,
-  validatePublishFields,
-  type ChallengeRow,
-} from "@/lib/challenges";
+import { getChallengeMetrics, serializeChallenge } from "@/lib/challenges";
+import { submitChallengeForReview } from "@/lib/challenges/submit-for-review";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -22,41 +17,23 @@ export async function POST(_request: Request, { params }: RouteParams) {
       return jsonError("Only admins can submit challenges for review", 403);
     }
 
-    const row = await getChallengeForBrand(id, staff.brandId);
-    if (!row) return jsonError("Challenge not found", 404);
+    const brand = await getBrandById(staff.brandId);
 
-    if (row.status !== "draft" && row.status !== "rejected") {
-      return jsonError("Only draft or rejected challenges can be submitted for review", 409);
+    const result = await submitChallengeForReview({
+      challengeId: id,
+      brandId: staff.brandId,
+      brandName: brand?.name ?? "Unknown brand",
+      submittedByEmail: staff.email,
+    });
+
+    if (!result.ok) {
+      return jsonError(result.error, result.status);
     }
-
-    const errors = validatePublishFields(row);
-    if (errors.length > 0) {
-      return jsonError(`Cannot submit: ${errors.join("; ")}`);
-    }
-
-    const admin = createAdminClient();
-    const now = new Date().toISOString();
-
-    const { data: updated, error } = await admin
-      .from("challenges")
-      .update({
-        status: "pending_review",
-        submitted_at: now,
-        rejection_reason: null,
-        reviewed_at: null,
-        reviewed_by: null,
-      })
-      .eq("id", id)
-      .eq("brand_id", staff.brandId)
-      .select("*")
-      .single();
-
-    if (error || !updated) return jsonError(error?.message || "Submit failed", 500);
 
     const metrics = await getChallengeMetrics([id]);
 
     return NextResponse.json({
-      challenge: serializeChallenge(updated as ChallengeRow, metrics[id]),
+      challenge: serializeChallenge(result.challenge, metrics[id]),
       message: "Submitted for CADA approval.",
     });
   } catch (err) {

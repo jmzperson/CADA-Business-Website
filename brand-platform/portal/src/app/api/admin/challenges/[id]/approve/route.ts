@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getChallengeById, updateChallenge } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
 import { verifyCadaAdminToken } from "@/lib/admin/auth";
 
@@ -12,36 +12,29 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     const { id } = await params;
-    const admin = createAdminClient();
-    const now = new Date().toISOString();
-
-    const { data: row } = await admin
-      .from("challenges")
-      .select("id, status")
-      .eq("id", id)
-      .maybeSingle();
-
+    const row = await getChallengeById(id);
     if (!row) return jsonError("Challenge not found", 404);
     if (row.status !== "pending_review") {
       return jsonError("Only pending_review challenges can be approved", 409);
     }
 
-    const { data: updated, error } = await admin
-      .from("challenges")
-      .update({
-        status: "active",
-        published_at: now,
-        reviewed_at: now,
-        reviewed_by: "CADA_ADMIN",
-      })
-      .eq("id", id)
-      .select("id, title, status, published_at")
-      .single();
+    const now = new Date().toISOString();
+    const updated = await updateChallenge(id, {
+      status: "active",
+      published_at: now,
+      reviewed_at: now,
+      reviewed_by: "CADA_ADMIN",
+    });
 
-    if (error || !updated) return jsonError(error?.message || "Approve failed", 500);
+    if (!updated) return jsonError("Approve failed", 500);
 
     return NextResponse.json({
-      challenge: updated,
+      challenge: {
+        id: updated.id,
+        title: updated.title,
+        status: updated.status,
+        published_at: updated.published_at,
+      },
       message: "Challenge approved and live in the CADA app.",
     });
   } catch (err) {

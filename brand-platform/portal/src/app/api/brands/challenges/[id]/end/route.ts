@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStaffContext } from "@/lib/auth/session";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { updateChallenge } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
 import {
   getChallengeForBrand,
@@ -27,21 +27,16 @@ export async function POST(_request: Request, { params }: RouteParams) {
       return jsonError("Only active challenges can be ended", 409);
     }
 
-    const admin = createAdminClient();
     const now = new Date().toISOString();
+    const endsAt =
+      row.ends_at && new Date(row.ends_at) < new Date() ? row.ends_at : now;
 
-    const { data: updated, error } = await admin
-      .from("challenges")
-      .update({
-        status: "ended",
-        ends_at: row.ends_at && new Date(row.ends_at) < new Date() ? row.ends_at : now,
-      })
-      .eq("id", id)
-      .eq("brand_id", staff.brandId)
-      .select("*")
-      .single();
+    const updated = await updateChallenge(id, {
+      status: "ended",
+      ends_at: endsAt,
+    });
 
-    if (error || !updated) return jsonError(error?.message || "Failed to end challenge", 500);
+    if (!updated) return jsonError("Failed to end challenge", 500);
 
     const metrics = await getChallengeMetrics([id]);
 

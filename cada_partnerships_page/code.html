@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html class="scroll-smooth" lang="en">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-E9QBRD59GR"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-E9QBRD59GR');
+  </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Brand Partnerships | CADA</title>
@@ -58,8 +67,7 @@
     }
   </style>
   <script>
-    // Brand portal base URL — update for production (e.g. https://partners.cada.app)
-    window.CADA_PARTNERS_URL = 'http://localhost:3000';
+    // Optional override: window.CADA_PARTNERS_URL = 'https://your-portal.vercel.app';
   </script>
 </head>
 <body class="bg-white font-body text-ink antialiased">
@@ -153,8 +161,8 @@
   <div class="seq-section max-w-md mx-auto">
     <h2 class="seq-item font-display text-2xl font-extrabold text-center mb-2">Get in touch</h2>
     <p class="seq-item text-ink-light text-center text-sm mb-8">Share your brand details and we will follow up to discuss fit.</p>
-    <form id="contact-form" class="seq-item card-duo p-6 space-y-4">
-      <div id="form-status" class="hidden rounded-card px-4 py-3 text-sm font-medium"></div>
+    <form id="contact-form" data-cada-form="partnership" class="seq-item card-duo p-6 space-y-4">
+      <div id="form-status" data-form-status class="hidden rounded-card px-4 py-3 text-sm font-medium"></div>
       <div>
         <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display" for="lead-company">Brand name</label>
         <input id="lead-company" name="company_name" type="text" required class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-teal outline-none" placeholder="Your brand">
@@ -169,11 +177,11 @@
       </div>
       <button id="lead-submit" type="submit" class="w-full btn-primary font-display font-extrabold py-4 rounded-card text-lg">SUBMIT</button>
       <p class="text-center text-sm">
-        <a id="contact-login-link" href="http://localhost:3000/login" class="font-display font-extrabold text-teal hover:underline">Login to Partner Account</a>
+        <a id="contact-login-link" href="#" class="font-display font-extrabold text-teal hover:underline">Login to Partner Account</a>
       </p>
       <p class="text-center text-xs text-ink-light">
         Ready to start now?
-        <a id="contact-signup-link" href="http://localhost:3000/signup" class="font-bold text-teal hover:underline">Create your partner account</a>
+        <a id="contact-signup-link" href="#" class="font-bold text-teal hover:underline">Create your partner account</a>
         · <a href="../cada_brand_portal_demo/code.html" class="font-bold text-teal hover:underline">Portal demo (no backend)</a>
       </p>
     </form>
@@ -187,7 +195,24 @@
   <p class="mt-2">© 2026 CADA</p>
 </footer>
 
-<script type="module" src="../js/firebase-init.js"></script>
+<script src="../js/portal-links.js"></script>
+<script src="../js/site-forms.js"></script>
+<script>
+  (function () {
+    function wirePortalLinks() {
+      var portal = window.CADA_PARTNERS_URL || 'http://localhost:3000';
+      var signupLink = document.getElementById('contact-signup-link');
+      var loginLink = document.getElementById('contact-login-link');
+      var heroCta = document.getElementById('hero-signup-cta');
+      if (signupLink) signupLink.href = portal + '/signup';
+      if (loginLink) loginLink.href = portal + '/login';
+      if (heroCta && !heroCta.getAttribute('href')?.startsWith('#')) {
+        heroCta.href = portal + '/signup';
+      }
+    }
+    wirePortalLinks();
+  })();
+</script>
 <script>
   (function () {
     var btn = document.getElementById('mobile-menu-btn');
@@ -206,58 +231,6 @@
       }
       btn.addEventListener('click', function () { menu.hidden ? openMenu() : closeMenu(); });
       menu.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', closeMenu); });
-    }
-  })();
-</script>
-<script>
-  (function () {
-    var portal = window.CADA_PARTNERS_URL || 'http://localhost:3000';
-    var signupLink = document.getElementById('contact-signup-link');
-    var loginLink = document.getElementById('contact-login-link');
-    if (signupLink) signupLink.href = portal + '/signup';
-    if (loginLink) loginLink.href = portal + '/login';
-
-    var form = document.getElementById('contact-form');
-    var statusEl = document.getElementById('form-status');
-    var submitBtn = document.getElementById('lead-submit');
-
-    if (form) {
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var company = document.getElementById('lead-company').value.trim();
-        var email = document.getElementById('lead-email').value.trim();
-        var message = document.getElementById('lead-message').value.trim();
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'SENDING…';
-        statusEl.className = 'hidden';
-
-        fetch(portal + '/api/leads', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ company_name: company, email: email, message: message || undefined }),
-        })
-          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
-          .then(function (res) {
-            statusEl.classList.remove('hidden');
-            if (res.ok) {
-              statusEl.className = 'rounded-card px-4 py-3 text-sm font-medium bg-teal-light text-teal-dark border-2 border-teal/20';
-              statusEl.innerHTML = 'Thanks! We\'ll follow up soon. <a class="font-bold underline" href="' + (res.data.signup_url || portal + '/signup') + '">Create your account now</a>.';
-              form.reset();
-            } else {
-              statusEl.className = 'rounded-card px-4 py-3 text-sm font-medium bg-coral-light text-coral-dark border-2 border-coral/20';
-              statusEl.textContent = res.data.error || 'Something went wrong. Try again or sign up directly.';
-            }
-          })
-          .catch(function () {
-            statusEl.classList.remove('hidden');
-            statusEl.className = 'rounded-card px-4 py-3 text-sm font-medium bg-coral-light text-coral-dark border-2 border-coral/20';
-            statusEl.innerHTML = 'Could not reach the portal. <a class="font-bold underline" href="' + portal + '/signup">Sign up directly</a>.';
-          })
-          .finally(function () {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'SUBMIT';
-          });
-      });
     }
   })();
 </script>

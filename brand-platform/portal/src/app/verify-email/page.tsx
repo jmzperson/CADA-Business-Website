@@ -2,7 +2,6 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { AuthShell, Alert } from "@/components/auth-shell";
 
 function VerifyEmailForm() {
@@ -21,38 +20,34 @@ function VerifyEmailForm() {
   async function resend() {
     setLoading(true);
     setMessage("");
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    if (!user?.email) {
-      setMessage("No email on file. Please sign in again.");
-      setLoading(false);
-      return;
-    }
-
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email: user.email,
-      options: {
-        emailRedirectTo: `${window.location.origin}${afterVerifyPath()}`,
-      },
+    const res = await fetch("/api/auth/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ continue_url: afterVerifyPath() }),
     });
 
-    setMessage(error ? error.message : "Verification email sent. Check your inbox.");
+    const data = (await res.json()) as { message?: string; error?: string };
+    if (!res.ok) {
+      setMessage(data.error || "Could not send verification email. Please sign in again.");
+    } else {
+      setMessage(data.message || "Verification email sent. Check your inbox.");
+    }
     setLoading(false);
   }
 
   async function checkVerified() {
     setLoading(true);
-    const supabase = createClient();
-    await supabase.auth.refreshSession();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const res = await fetch("/api/auth/session-status");
+    const data = (await res.json()) as { email_verified?: boolean; error?: string };
 
-    if (user?.email_confirmed_at) {
+    if (!res.ok) {
+      setMessage(data.error || "Session expired. Please sign in again.");
+      setLoading(false);
+      return;
+    }
+
+    if (data.email_verified) {
       window.location.href = afterVerifyPath();
       return;
     }

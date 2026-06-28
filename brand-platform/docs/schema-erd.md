@@ -186,6 +186,7 @@ Attribution layer; idempotent on `(user_id, source_event_id)`.
 | id | UUID | PK |
 | qr_reward_id | UUID | FK unique |
 | brand_id | UUID | FK → brands |
+| challenge_id | UUID | FK → challenges (denormalized for per-campaign counts) |
 | staff_id | UUID | FK → brand_staff |
 | location_id | UUID | Optional FK → brand_locations |
 | redeemed_at | TIMESTAMPTZ | |
