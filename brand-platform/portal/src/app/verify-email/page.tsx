@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AuthShell, Alert } from "@/components/auth-shell";
+import { getFirebaseAuth } from "@/lib/firebase/client";
 
 function VerifyEmailForm() {
   const searchParams = useSearchParams();
@@ -38,22 +39,41 @@ function VerifyEmailForm() {
 
   async function checkVerified() {
     setLoading(true);
-    const res = await fetch("/api/auth/session-status");
-    const data = (await res.json()) as { email_verified?: boolean; error?: string };
+    setMessage("");
 
-    if (!res.ok) {
-      setMessage(data.error || "Session expired. Please sign in again.");
-      setLoading(false);
-      return;
-    }
+    try {
+      const statusRes = await fetch("/api/auth/session-status");
+      const statusData = (await statusRes.json()) as { email_verified?: boolean; error?: string };
 
-    if (data.email_verified) {
+      if (!statusRes.ok) {
+        setMessage(statusData.error || "Session expired. Please sign in again.");
+        setLoading(false);
+        return;
+      }
+
+      if (!statusData.email_verified) {
+        setMessage("Email not verified yet. Click the link in your inbox first.");
+        setLoading(false);
+        return;
+      }
+
+      // Refresh the session cookie so it carries email_verified: true
+      const auth = getFirebaseAuth();
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const freshToken = await currentUser.getIdToken(true);
+        await fetch("/api/auth/refresh-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken: freshToken }),
+        });
+      }
+
       window.location.href = afterVerifyPath();
-      return;
+    } catch {
+      setMessage("Something went wrong. Please try again.");
+      setLoading(false);
     }
-
-    setMessage("Email not verified yet. Click the link in your inbox.");
-    setLoading(false);
   }
 
   return (
@@ -65,11 +85,13 @@ function VerifyEmailForm() {
         Check your spam folder if you don&apos;t see the email within a few minutes.
       </Alert>
       {message && (
-        <Alert type={message.includes("sent") ? "success" : "info"}>{message}</Alert>
+        <Alert type={message.includes("sent") || message.includes("verified") ? "success" : "info"}>
+          {message}
+        </Alert>
       )}
       <div className="space-y-3">
         <button type="button" className="btn-primary w-full" onClick={checkVerified} disabled={loading}>
-          I&apos;ve verified my email
+          {loading ? "Checking…" : "I've verified my email"}
         </button>
         <button type="button" className="btn-secondary w-full" onClick={resend} disabled={loading}>
           Resend verification email

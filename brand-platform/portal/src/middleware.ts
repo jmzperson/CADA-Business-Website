@@ -15,6 +15,7 @@ const PUBLIC_PATHS = [
   "/api/auth/forgot-password",
   "/api/auth/session-status",
   "/api/auth/resend-verification",
+  "/api/auth/refresh-session",
   "/api/brands/register",
   "/api/brands/staff/accept",
   "/api/leads",
