@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import { adminAuth } from "@/lib/firebase/admin";
-import { AuthError } from "@/lib/auth/session";
+import { AuthError } from "@/lib/errors";
 import { getCadaUserByAuthId } from "@/lib/db";
 
 /** CADA iOS app users only — not portal brand staff unless they also have a cada_users profile. */
