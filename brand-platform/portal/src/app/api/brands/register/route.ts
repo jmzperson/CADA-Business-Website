@@ -255,10 +255,15 @@ async function resumeExistingAuthRegistration(params: {
   }
 
   if (await isAppUserOnly(signIn.localId)) {
-    return jsonError(
-      "This email is registered on the CADA app. Use a different email for your partner account.",
-      409
-    );
+    // App user with no partner account — set session and send to business profile form.
+    const sessionCookie = await createPortalSessionCookie(signIn.idToken);
+    const cookieStore = await cookies();
+    cookieStore.set(PORTAL_SESSION_COOKIE, sessionCookie, portalSessionCookieOptions());
+    return NextResponse.json({
+      needs_business_profile: true,
+      redirect: "/signup/business",
+      message: "Complete your business profile to access the partner portal.",
+    });
   }
 
   const userRecord = await adminAuth().getUser(signIn.localId);

@@ -47,10 +47,20 @@ export async function POST(request: Request) {
       }
 
       if (await isAppUserOnly(signIn.localId)) {
-        return jsonError(
-          "This email is registered on the CADA app. Partner accounts use a separate login — sign up with your business email or contact james@cadaapp.com.",
-          403
-        );
+        // App user with no partner account — set session and send to business profile form.
+        const sessionCookie = await createPortalSessionCookie(signIn.idToken);
+        const cookieStore = await cookies();
+        cookieStore.set(PORTAL_SESSION_COOKIE, sessionCookie, portalSessionCookieOptions());
+        const authUser = await adminAuth().getUser(signIn.localId);
+        return NextResponse.json({
+          needs_business_profile: true,
+          redirect: "/signup/business",
+          user: {
+            id: signIn.localId,
+            email: signIn.email ?? email,
+            email_verified: authUser.emailVerified,
+          },
+        });
       }
 
       return jsonError(

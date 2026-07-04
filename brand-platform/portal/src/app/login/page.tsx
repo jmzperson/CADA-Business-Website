@@ -34,6 +34,11 @@ function LoginForm() {
         return;
       }
 
+      if (data.needs_business_profile || data.redirect === "/signup/business") {
+        router.push("/signup/business");
+        return;
+      }
+
       if (!data.user.email_verified) {
         const verifyUrl = next
           ? `/verify-email?next=${encodeURIComponent(next)}`

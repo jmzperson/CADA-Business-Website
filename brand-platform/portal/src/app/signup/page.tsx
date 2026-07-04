@@ -67,6 +67,11 @@ function SignupForm() {
         return;
       }
 
+      if (data.needs_business_profile || data.redirect === "/signup/business") {
+        router.push("/signup/business");
+        return;
+      }
+
       if (data.email_verification_required) {
         const verifyUrl = next
           ? `/verify-email?next=${encodeURIComponent(next)}`
