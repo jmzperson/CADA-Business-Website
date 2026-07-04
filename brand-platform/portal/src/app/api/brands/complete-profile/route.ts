@@ -68,7 +68,10 @@ export async function POST(request: Request) {
     if (!businessName) return jsonError("business_name is required");
     if (!BRAND_CATEGORIES.some((c) => c.value === category)) return jsonError("Invalid category");
 
-    const authUser = await adminAuth().getUser(user.uid);
+    const [authUser, appProfile] = await Promise.all([
+      adminAuth().getUser(user.uid),
+      getCadaUserByAuthId(user.uid),
+    ]);
     const email = authUser.email;
     if (!email) return jsonError("Account has no email address", 400);
 
@@ -99,7 +102,8 @@ export async function POST(request: Request) {
     await setPortalStaffClaims(user.uid, { brandId: brand.id, staffRole: "admin" });
     await markLeadsSignedUp(email, brand.id);
 
-    const skipVerification = process.env.SKIP_EMAIL_VERIFICATION === "true";
+    const skipVerification =
+      process.env.SKIP_EMAIL_VERIFICATION === "true" || Boolean(appProfile);
     const emailVerificationRequired = !skipVerification && !authUser.emailVerified;
 
     return NextResponse.json(
