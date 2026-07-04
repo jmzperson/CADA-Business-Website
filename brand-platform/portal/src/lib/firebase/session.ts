@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import { adminAuth } from "@/lib/firebase/admin";
+import { PORTAL_SESSION_COOKIE } from "@/lib/firebase/session-constants";
 
-export const PORTAL_SESSION_COOKIE = "__portal_session";
+export { PORTAL_SESSION_COOKIE };
 const SESSION_MAX_AGE_MS = 60 * 60 * 24 * 5 * 1000; // 5 days
 
 export async function createPortalSessionCookie(idToken: string): Promise<string> {

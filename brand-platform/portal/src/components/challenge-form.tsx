@@ -1,6 +1,6 @@
 "use client";
 
-import { HABIT_TYPES } from "@/lib/challenges";
+import { HABIT_TYPES } from "@/lib/challenge-constants";
 import type { ChallengeFormValues } from "@/lib/challenge-form";
 
 type Props = {

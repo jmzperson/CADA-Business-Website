@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BRAND_CATEGORIES } from "@/lib/api";
+import { BRAND_CATEGORIES } from "@/lib/brand-categories";
 import { Alert } from "@/components/auth-shell";
 import { PageHeader } from "@/components/page-header";
 

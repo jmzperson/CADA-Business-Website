@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChallengeStatusBadge } from "@/components/challenge-status-badge";
 import { PageHeader } from "@/components/page-header";
 import { habitLabel } from "@/lib/challenge-form";
-import type { ChallengeStatus } from "@/lib/challenges";
+import type { ChallengeStatus } from "@/lib/challenge-constants";
 
 type Challenge = {
   id: string;

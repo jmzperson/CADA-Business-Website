@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { parseTokenFromScan } from "@/lib/mobile/redeem";
+import { parseTokenFromScan } from "@/lib/mobile/scan-utils";
 import { CompactShell } from "@/components/compact-shell";
 import {
   postRedeemToken,

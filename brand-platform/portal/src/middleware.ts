@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { PORTAL_SESSION_COOKIE } from "@/lib/firebase/session";
+import { PORTAL_SESSION_COOKIE } from "@/lib/firebase/session-constants";
 
 const PUBLIC_PATHS = [
   "/login",

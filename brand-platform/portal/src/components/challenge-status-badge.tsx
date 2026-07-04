@@ -1,4 +1,4 @@
-import type { ChallengeStatus } from "@/lib/challenges";
+import type { ChallengeStatus } from "@/lib/challenge-constants";
 
 const STYLES: Record<ChallengeStatus, string> = {
   draft: "bg-white text-ink-light border-border",

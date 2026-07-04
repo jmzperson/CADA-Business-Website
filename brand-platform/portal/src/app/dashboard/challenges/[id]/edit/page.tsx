@@ -8,7 +8,7 @@ import { ChallengeStatusBadge } from "@/components/challenge-status-badge";
 import { PageHeader } from "@/components/page-header";
 import { Alert } from "@/components/auth-shell";
 import { toDatetimeLocal, type ChallengeFormValues } from "@/lib/challenge-form";
-import type { ChallengeStatus } from "@/lib/challenges";
+import type { ChallengeStatus } from "@/lib/challenge-constants";
 
 type Challenge = {
   id: string;

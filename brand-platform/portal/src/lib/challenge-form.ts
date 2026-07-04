@@ -1,4 +1,4 @@
-import { HABIT_TYPES } from "@/lib/challenges";
+import { HABIT_TYPES } from "@/lib/challenge-constants";
 
 export type ChallengeFormValues = {
   title: string;
