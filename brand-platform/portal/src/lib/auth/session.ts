@@ -1,6 +1,8 @@
 import { getPortalSessionUser } from "@/lib/firebase/session";
 import { getBrandById, getStaffByAuthUserId } from "@/lib/db";
 import type { BrandDoc } from "@/lib/db/types";
+import { AuthError } from "@/lib/errors";
+export { AuthError };
 
 export type StaffRole = "admin" | "scanner";
 
@@ -53,12 +55,3 @@ export function requireAdmin(ctx: StaffContext) {
   }
 }
 
-export class AuthError extends Error {
-  constructor(
-    message: string,
-    public status: number
-  ) {
-    super(message);
-    this.name = "AuthError";
-  }
-}
