@@ -46,27 +46,22 @@ export async function POST(request: Request) {
         );
       }
 
-      if (await isAppUserOnly(signIn.localId)) {
-        // App user with no partner account — set session and send to business profile form.
-        const sessionCookie = await createPortalSessionCookie(signIn.idToken);
-        const cookieStore = await cookies();
-        cookieStore.set(PORTAL_SESSION_COOKIE, sessionCookie, portalSessionCookieOptions());
-        const authUser = await adminAuth().getUser(signIn.localId);
-        return NextResponse.json({
-          needs_business_profile: true,
-          redirect: "/signup/business",
-          user: {
-            id: signIn.localId,
-            email: signIn.email ?? email,
-            email_verified: authUser.emailVerified,
-          },
-        });
-      }
-
-      return jsonError(
-        "No partner account found for this email. Create a brand account or use the invite link from your email.",
-        403
-      );
+      // Authenticated but no partner account and no pending invite —
+      // whether they're a CADA app user or just a raw Firebase Auth account,
+      // send them to complete their business profile.
+      const sessionCookie = await createPortalSessionCookie(signIn.idToken);
+      const cookieStore = await cookies();
+      cookieStore.set(PORTAL_SESSION_COOKIE, sessionCookie, portalSessionCookieOptions());
+      const authUser = await adminAuth().getUser(signIn.localId);
+      return NextResponse.json({
+        needs_business_profile: true,
+        redirect: "/signup/business",
+        user: {
+          id: signIn.localId,
+          email: signIn.email ?? email,
+          email_verified: authUser.emailVerified,
+        },
+      });
     }
 
     const authUser = await adminAuth().getUser(signIn.localId);

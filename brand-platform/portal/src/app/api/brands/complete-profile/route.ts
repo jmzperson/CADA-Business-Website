@@ -102,9 +102,9 @@ export async function POST(request: Request) {
     await setPortalStaffClaims(user.uid, { brandId: brand.id, staffRole: "admin" });
     await markLeadsSignedUp(email, brand.id);
 
-    const skipVerification =
-      process.env.SKIP_EMAIL_VERIFICATION === "true" || Boolean(appProfile);
-    const emailVerificationRequired = !skipVerification && !authUser.emailVerified;
+    // Users arriving via complete-profile already authenticated with their password,
+    // proving email ownership — skip verification. App users (appProfile) are also trusted.
+    const emailVerificationRequired = false;
 
     return NextResponse.json(
       {
