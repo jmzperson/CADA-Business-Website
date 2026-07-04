@@ -9,8 +9,9 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/dashboard";
+  const emailParam = searchParams.get("email") || "";
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,6 +64,9 @@ function LoginForm() {
         </>
       }
     >
+      {searchParams.get("registered") === "1" && (
+        <Alert type="success">Account created. Sign in with your email and password.</Alert>
+      )}
       {error && <Alert type="error">{error}</Alert>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

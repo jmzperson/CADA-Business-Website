@@ -25,11 +25,13 @@ function SignupForm() {
   const [category, setCategory] = useState("other");
   const [website, setWebsite] = useState("");
   const [error, setError] = useState("");
+  const [showSignInLink, setShowSignInLink] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setShowSignInLink(false);
 
     if (password !== confirm) {
       setError("Passwords do not match");
@@ -56,7 +58,12 @@ function SignupForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Registration failed");
+        if (res.status === 409 && data.error?.includes("Sign in")) {
+          setError(data.error);
+          setShowSignInLink(true);
+        } else {
+          setError(data.error || "Registration failed");
+        }
         return;
       }
 
@@ -90,6 +97,16 @@ function SignupForm() {
       }
     >
       {error && <Alert type="error">{error}</Alert>}
+      {showSignInLink && (
+        <p className="text-center text-sm">
+          <Link
+            href={`/login?email=${encodeURIComponent(email)}`}
+            className="font-display font-extrabold text-teal hover:underline"
+          >
+            Go to sign in
+          </Link>
+        </p>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="label" htmlFor="business_name">

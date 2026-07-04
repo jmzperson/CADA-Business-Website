@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { handleApiError, jsonError } from "@/lib/api";
+import {
+  getPendingInviteStaff,
+  isAppUserOnly,
+  resolvePortalStaffForLogin,
+} from "@/lib/auth/resolve-portal-staff";
 import { signInWithEmailPassword } from "@/lib/firebase/auth-rest";
+import { adminAuth } from "@/lib/firebase/admin";
 import {
   createPortalSessionCookie,
   PORTAL_SESSION_COOKIE,
@@ -30,14 +36,30 @@ export async function POST(request: Request) {
       return jsonError("Invalid email or password", 401);
     }
 
-    const staff = await getStaffContextFromUid(signIn.localId, email);
-    if (!staff) {
+    const resolved = await resolvePortalStaffForLogin(signIn.localId, email);
+    if (!resolved) {
+      const pendingInvite = await getPendingInviteStaff(email);
+      if (pendingInvite) {
+        return jsonError(
+          "Your partner invite is not complete yet. Open the invite link from your email to set your password.",
+          403
+        );
+      }
+
+      if (await isAppUserOnly(signIn.localId)) {
+        return jsonError(
+          "This email is registered on the CADA app. Partner accounts use a separate login — sign up with your business email or contact james@cadaapp.com.",
+          403
+        );
+      }
+
       return jsonError(
-        "No brand account found. Open the invite link from your email or contact james@cadaapp.com.",
+        "No partner account found for this email. Create a brand account or use the invite link from your email.",
         403
       );
     }
 
+    const authUser = await adminAuth().getUser(signIn.localId);
     const sessionCookie = await createPortalSessionCookie(signIn.idToken);
     const cookieStore = await cookies();
     cookieStore.set(PORTAL_SESSION_COOKIE, sessionCookie, portalSessionCookieOptions());
@@ -46,30 +68,15 @@ export async function POST(request: Request) {
       user: {
         id: signIn.localId,
         email: signIn.email ?? email,
-        email_verified: staff.emailVerified,
+        email_verified: authUser.emailVerified,
       },
       staff: {
-        id: staff.staffId,
-        brand_id: staff.brandId,
-        role: staff.role,
+        id: resolved.staff.id,
+        brand_id: resolved.staff.brand_id,
+        role: resolved.staff.role,
       },
     });
   } catch (err) {
     return handleApiError(err);
   }
-}
-
-async function getStaffContextFromUid(authUid: string, email: string) {
-  const { getStaffByAuthUserId } = await import("@/lib/db");
-  const { adminAuth } = await import("@/lib/firebase/admin");
-  const staff = await getStaffByAuthUserId(authUid);
-  if (!staff || !staff.accepted_at) return null;
-  const user = await adminAuth().getUser(authUid);
-  return {
-    staffId: staff.id,
-    brandId: staff.brand_id,
-    role: staff.role,
-    email: staff.email || email,
-    emailVerified: user.emailVerified,
-  };
 }
