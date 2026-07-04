@@ -3,7 +3,23 @@
  * Partnership leads also sync to the brand portal database when configured.
  */
 (function () {
-  var endpoint = window.CADA_FORM_ENDPOINT || '/api/submit-form';
+  function resolveEndpoint() {
+    if (window.CADA_FORM_ENDPOINT) return window.CADA_FORM_ENDPOINT;
+    var host = window.location.hostname;
+    var protocol = window.location.protocol;
+    // Static preview (python -m http.server, etc.) has no /api — use production proxy.
+    if (
+      protocol === 'file:' ||
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host.endsWith('.local')
+    ) {
+      return 'https://www.cadaapp.org/api/submit-form';
+    }
+    return '/api/submit-form';
+  }
+
+  var endpoint = resolveEndpoint();
 
   function showStatus(el, type, message) {
     if (!el) return;
@@ -81,17 +97,21 @@
           var res = results[0];
           if (res.ok && res.data.ok !== false) {
             var msg = "Thanks! We'll be in touch soon.";
-            if (formType === 'partnership' && window.CADA_PARTNERS_URL) {
-              msg += ' You can also create your partner account using the link below.';
+            if (formType === 'support') {
+              msg = "Thanks! We received your question and will get back to you soon.";
+            } else if (formType === 'partnership') {
+              msg += " If we're a fit, we'll email you a partner invite.";
             }
             showStatus(statusEl, 'success', msg);
             form.reset();
           } else {
-            showStatus(
-              statusEl,
-              'error',
-              (res.data && res.data.error) || 'Something went wrong. Please try again.'
-            );
+            var errMsg =
+              (res.data && res.data.error) || 'Something went wrong. Please try again.';
+            if (errMsg === 'Method not allowed') {
+              errMsg =
+                'Form could not be sent (server rejected the request). If you are testing locally, use the live site or run vercel dev.';
+            }
+            showStatus(statusEl, 'error', errMsg);
           }
         })
         .catch(function () {

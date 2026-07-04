@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html class="scroll-smooth" lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-E9QBRD59GR"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-E9QBRD59GR');
+  </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Support | CADA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            teal: '#1CB0C8', 'teal-dark': '#1899B0', 'teal-light': '#DDF8FC',
+            sky: '#E8F7FA', ink: '#3C3C3C', 'ink-light': '#777777', border: '#E5E5E5',
+          },
+          fontFamily: { display: ['Nunito', 'sans-serif'], body: ['DM Sans', 'sans-serif'] },
+          borderRadius: { card: '16px' },
+        },
+      },
+    };
+  </script>
+  <style>
+    .sym { font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; line-height: 1; display: inline-block; font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+    .btn-primary { background: #1CB0C8; color: white; box-shadow: 0 4px 0 #1899B0; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .btn-primary:hover { transform: translateY(-2px); }
+    .btn-primary:active { transform: translateY(4px); box-shadow: none; }
+    .card-duo { background: white; border: 2px solid #E5E5E5; border-radius: 16px; box-shadow: 0 2px 0 #E5E5E5; }
+    .mobile-menu-drop { border-bottom: 2px solid #E5E5E5; background: #fff; box-shadow: 0 8px 16px rgba(0,0,0,0.06); }
+    .mobile-menu-drop a { display: block; padding: 0.875rem 1.25rem; font-weight: 700; font-family: 'Nunito', sans-serif; font-size: 0.9375rem; color: #3C3C3C; border-top: 1px solid #F0F0F0; }
+    .mobile-menu-drop a:first-child { border-top: none; }
+    .nav-bar { padding-top: env(safe-area-inset-top, 0px); }
+  </style>
+</head>
+<body class="bg-white font-body text-ink antialiased">
+
+<nav class="nav-bar fixed top-0 inset-x-0 z-50 bg-white border-b-2 border-border">
+  <div class="max-w-5xl mx-auto px-4 sm:px-5 h-[60px] flex items-center justify-between gap-2">
+    <a href="index.html" class="inline-flex shrink-0 items-center min-w-0">
+      <img src="images/cada-logo.png" alt="CADA" class="h-8 w-auto" width="251" height="80" />
+    </a>
+    <div class="hidden md:flex items-center gap-6 text-sm font-bold text-ink-light">
+      <a href="index.html" class="hover:text-teal transition-colors">Home</a>
+      <a href="cada_partnerships_page/code.html" class="hover:text-teal transition-colors">Partnerships</a>
+      <a href="cada_creators_page/code.html" class="hover:text-teal transition-colors">Influencers</a>
+    </div>
+    <button type="button" id="mobile-menu-btn" class="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-card border-2 border-border text-ink" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
+      <span id="mobile-menu-icon" class="sym text-[22px]">menu</span>
+    </button>
+  </div>
+  <div id="mobile-menu" class="mobile-menu-drop md:hidden" hidden>
+    <a href="index.html">Home</a>
+    <a href="cada_partnerships_page/code.html">Partnerships</a>
+    <a href="cada_creators_page/code.html">Influencers</a>
+  </div>
+</nav>
+
+<main class="pt-24 pb-16 px-5 bg-gradient-to-b from-teal-light/40 to-white min-h-[70vh]">
+  <div class="max-w-md mx-auto">
+    <header class="text-center mb-8">
+      <h1 class="font-display text-3xl md:text-4xl font-extrabold text-ink mb-3">Support</h1>
+      <p class="text-ink-light text-sm leading-relaxed max-w-sm mx-auto">
+        Have a question about CADA? Send us a message and we'll get back to you as soon as we can.
+      </p>
+    </header>
+
+    <form id="support-form" data-cada-form="support" method="post" action="#" class="card-duo p-6 space-y-4">
+      <div data-form-status class="hidden rounded-card px-4 py-3 text-sm font-medium"></div>
+      <div>
+        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display" for="support-name">Your name</label>
+        <input id="support-name" name="name" type="text" required class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-teal outline-none" placeholder="Full name">
+      </div>
+      <div>
+        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display" for="support-email">Email</label>
+        <input id="support-email" name="email" type="email" required class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-teal outline-none" placeholder="you@email.com">
+      </div>
+      <div>
+        <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display" for="support-message">Your question</label>
+        <textarea id="support-message" name="message" rows="5" required class="w-full bg-sky border-2 border-border rounded-card px-4 py-3 font-medium focus:border-teal outline-none resize-y" placeholder="How can we help?"></textarea>
+      </div>
+      <button type="submit" class="w-full btn-primary font-display font-extrabold py-4 rounded-card text-lg">SEND MESSAGE</button>
+    </form>
+
+    <p class="text-center text-xs text-ink-light mt-6">
+      Prefer email? <a href="mailto:james@cadaapp.com" class="text-teal font-bold hover:underline">james@cadaapp.com</a>
+    </p>
+    <p class="text-center text-xs text-ink-light/80 mt-2 max-w-xs mx-auto">
+      Submissions are saved to our team spreadsheet and we'll reply by email.
+    </p>
+  </div>
+</main>
+
+<footer class="border-t-2 border-border bg-sky py-10 px-5">
+  <div class="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-sm">
+    <div class="text-center sm:text-left">
+      <a href="index.html" class="inline-flex">
+        <img src="images/cada-logo.png" alt="CADA" class="mx-auto h-8 w-auto sm:mx-0" width="251" height="80" />
+      </a>
+      <p class="text-xs text-ink-light mt-1">15 seconds a day. Feel close, every day.</p>
+    </div>
+    <div class="flex flex-wrap justify-center gap-6 text-ink-light font-medium">
+      <a href="cada_partnerships_page/code.html" class="hover:text-teal">Partnerships</a>
+      <a href="cada_creators_page/code.html" class="hover:text-teal">Influencers</a>
+      <a href="privacy.html" class="hover:text-teal">Privacy</a>
+      <a href="support.html" class="text-teal">Support</a>
+    </div>
+  </div>
+  <p class="text-center text-xs text-ink-light mt-6">© 2026 CADA</p>
+</footer>
+
+<script src="js/site-forms.js"></script>
+<script>
+  (function () {
+    var btn = document.getElementById('mobile-menu-btn');
+    var menu = document.getElementById('mobile-menu');
+    var icon = document.getElementById('mobile-menu-icon');
+    if (btn && menu) {
+      function closeMenu() {
+        menu.hidden = true;
+        btn.setAttribute('aria-expanded', 'false');
+        if (icon) icon.textContent = 'menu';
+      }
+      function openMenu() {
+        menu.hidden = false;
+        btn.setAttribute('aria-expanded', 'true');
+        if (icon) icon.textContent = 'close';
+      }
+      btn.addEventListener('click', function () { menu.hidden ? openMenu() : closeMenu(); });
+      menu.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', closeMenu); });
+    }
+  })();
+</script>
+</body>
+</html>

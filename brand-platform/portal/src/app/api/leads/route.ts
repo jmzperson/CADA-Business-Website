@@ -50,21 +50,12 @@ export async function POST(request: Request) {
           status: data.status,
           created_at: data.created_at,
         },
-        message: "Thanks! We'll be in touch. You can also create your account now.",
-        signup_url: signupUrl(email, company_name),
+        message:
+          "Thanks! We'll review your details and email you a partner invite if it's a good fit.",
       },
       { status: 201, headers: corsHeaders(request) }
     );
   } catch (err) {
     return handleApiError(err);
   }
-}
-
-function signupUrl(email: string, companyName: string): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const params = new URLSearchParams({
-    email,
-    business_name: companyName,
-  });
-  return `${base}/signup?${params.toString()}`;
 }

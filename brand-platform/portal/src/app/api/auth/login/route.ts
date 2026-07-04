@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const staff = await getStaffContextFromUid(signIn.localId, email);
     if (!staff) {
       return jsonError(
-        "No brand account found. Accept your staff invite or register a new brand.",
+        "No brand account found. Open the invite link from your email or contact james@cadaapp.com.",
         403
       );
     }

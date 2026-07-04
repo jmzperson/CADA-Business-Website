@@ -161,7 +161,7 @@
   <div class="seq-section max-w-md mx-auto">
     <h2 class="seq-item font-display text-2xl font-extrabold text-center mb-2">Get in touch</h2>
     <p class="seq-item text-ink-light text-center text-sm mb-8">Share your brand details and we will follow up to discuss fit.</p>
-    <form id="contact-form" data-cada-form="partnership" class="seq-item card-duo p-6 space-y-4">
+    <form id="contact-form" data-cada-form="partnership" method="post" action="#" class="seq-item card-duo p-6 space-y-4">
       <div id="form-status" data-form-status class="hidden rounded-card px-4 py-3 text-sm font-medium"></div>
       <div>
         <label class="block text-xs font-extrabold text-ink-light uppercase mb-1.5 font-display" for="lead-company">Brand name</label>
@@ -180,9 +180,8 @@
         <a id="contact-login-link" href="#" class="font-display font-extrabold text-teal hover:underline">Login to Partner Account</a>
       </p>
       <p class="text-center text-xs text-ink-light">
-        Ready to start now?
-        <a id="contact-signup-link" href="#" class="font-bold text-teal hover:underline">Create your partner account</a>
-        · <a href="../cada_brand_portal_demo/code.html" class="font-bold text-teal hover:underline">Portal demo (no backend)</a>
+        New brand?
+        <a id="contact-signup-link" href="#" class="font-bold text-teal hover:underline">Create an account</a>
       </p>
     </form>
   </div>
@@ -192,6 +191,12 @@
   <a href="../index.html" class="inline-flex justify-center">
     <img src="../images/cada-logo.png" alt="CADA" class="h-8 w-auto" width="251" height="80" />
   </a>
+  <div class="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm font-medium">
+    <a href="../cada_partnerships_page/code.html" class="hover:text-teal">Partnerships</a>
+    <a href="../cada_creators_page/code.html" class="hover:text-teal">Influencers</a>
+    <a href="../privacy.html" class="hover:text-teal">Privacy</a>
+    <a href="../support.html" class="hover:text-teal">Support</a>
+  </div>
   <p class="mt-2">© 2026 CADA</p>
 </footer>
 
@@ -201,13 +206,13 @@
   (function () {
     function wirePortalLinks() {
       var portal = window.CADA_PARTNERS_URL || 'http://localhost:3000';
-      var signupLink = document.getElementById('contact-signup-link');
       var loginLink = document.getElementById('contact-login-link');
+      var signupLink = document.getElementById('contact-signup-link');
       var heroCta = document.getElementById('hero-signup-cta');
-      if (signupLink) signupLink.href = portal + '/signup';
       if (loginLink) loginLink.href = portal + '/login';
+      if (signupLink) signupLink.href = portal + '/signup';
       if (heroCta && !heroCta.getAttribute('href')?.startsWith('#')) {
-        heroCta.href = portal + '/signup';
+        heroCta.href = '#contact';
       }
     }
     wirePortalLinks();

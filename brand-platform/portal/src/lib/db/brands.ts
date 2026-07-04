@@ -177,6 +177,17 @@ export async function getStaffByBrandEmail(
   return { id: doc.id, ...doc.data() } as BrandStaffDoc;
 }
 
+export async function getStaffByEmail(email: string): Promise<BrandStaffDoc | null> {
+  const snap = await adminDb()
+    .collection(COLLECTIONS.brandStaff)
+    .where("email", "==", email.toLowerCase())
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  const doc = snap.docs[0];
+  return { id: doc.id, ...doc.data() } as BrandStaffDoc;
+}
+
 export function applyRangeFilter<T>(
   q: Query,
   field: string,

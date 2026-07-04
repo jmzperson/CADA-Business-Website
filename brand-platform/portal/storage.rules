@@ -1,0 +1,10 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Brand logos uploaded via Admin SDK (POST /api/brands/logo); public read for img src URLs.
+    match /brand-logos/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

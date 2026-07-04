@@ -4,38 +4,54 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AuthShell, Alert } from "@/components/auth-shell";
-import { BRAND_CATEGORIES } from "@/lib/api";
+
+const CATEGORIES = [
+  { value: "gym", label: "Gym & Fitness" },
+  { value: "food", label: "Food & Beverage" },
+  { value: "wellness", label: "Wellness & Spa" },
+  { value: "retail", label: "Retail" },
+  { value: "other", label: "Other" },
+] as const;
 
 function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [form, setForm] = useState({
-    business_name: searchParams.get("business_name") || "",
-    email: searchParams.get("email") || "",
-    password: "",
-    website: "",
-    category: "other",
-  });
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const next = searchParams.get("next") || "/dashboard";
+
+  const [businessName, setBusinessName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [category, setCategory] = useState("other");
+  const [website, setWebsite] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  function update(field: string, value: string) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (password !== confirm) {
+      setError("Passwords do not match");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
     setLoading(true);
-
     try {
-      let logo_url: string | undefined;
-
       const res = await fetch("/api/brands/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          business_name: businessName,
+          email,
+          password,
+          category,
+          website: website || undefined,
+        }),
       });
       const data = await res.json();
 
@@ -44,23 +60,15 @@ function SignupForm() {
         return;
       }
 
-      if (logoFile && data.brand?.id) {
-        const fd = new FormData();
-        fd.append("file", logoFile);
-        const logoRes = await fetch("/api/brands/logo", { method: "POST", body: fd });
-        if (logoRes.ok) {
-          const logoData = await logoRes.json();
-          logo_url = logoData.logo_url;
-          await fetch("/api/brands/me", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ logo_url }),
-          });
-        }
+      if (data.email_verification_required) {
+        const verifyUrl = next
+          ? `/verify-email?next=${encodeURIComponent(next)}`
+          : "/verify-email";
+        router.push(verifyUrl);
+      } else {
+        router.push(next);
+        router.refresh();
       }
-
-      router.push(data.email_verification_required ? "/verify-email" : "/dashboard?welcome=1");
-      router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -70,12 +78,12 @@ function SignupForm() {
 
   return (
     <AuthShell
-      title="Partner with CADA"
-      subtitle="Create your brand account to run sponsored challenges"
+      title="Create your brand account"
+      subtitle="Join CADA Partners and start running challenges"
       footer={
         <>
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-teal hover:underline">
+          <Link href="/login" className="font-display font-extrabold text-teal hover:underline">
             Sign in
           </Link>
         </>
@@ -89,25 +97,66 @@ function SignupForm() {
           </label>
           <input
             id="business_name"
+            type="text"
             className="input"
-            value={form.business_name}
-            onChange={(e) => update("business_name", e.target.value)}
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
             required
+            autoComplete="organization"
+            placeholder="Acme Gym"
           />
         </div>
+
+        <div>
+          <label className="label" htmlFor="category">
+            Category
+          </label>
+          <select
+            id="category"
+            className="input"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            required
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="label" htmlFor="website">
+            Website <span className="text-ink-muted font-normal">(optional)</span>
+          </label>
+          <input
+            id="website"
+            type="url"
+            className="input"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            autoComplete="url"
+            placeholder="https://yourbrand.com"
+          />
+        </div>
+
         <div>
           <label className="label" htmlFor="email">
-            Contact email
+            Email
           </label>
           <input
             id="email"
             type="email"
             className="input"
-            value={form.email}
-            onChange={(e) => update("email", e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="email"
+            placeholder="you@yourbrand.com"
           />
         </div>
+
         <div>
           <label className="label" htmlFor="password">
             Password
@@ -116,54 +165,29 @@ function SignupForm() {
             id="password"
             type="password"
             className="input"
-            value={form.password}
-            onChange={(e) => update("password", e.target.value)}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={8}
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
           />
         </div>
+
         <div>
-          <label className="label" htmlFor="category">
-            Category
-          </label>
-          <select
-            id="category"
-            className="input"
-            value={form.category}
-            onChange={(e) => update("category", e.target.value)}
-          >
-            {BRAND_CATEGORIES.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="label" htmlFor="website">
-            Website <span className="font-normal text-ink-muted">(optional)</span>
+          <label className="label" htmlFor="confirm">
+            Confirm password
           </label>
           <input
-            id="website"
-            type="url"
+            id="confirm"
+            type="password"
             className="input"
-            placeholder="https://"
-            value={form.website}
-            onChange={(e) => update("website", e.target.value)}
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            required
+            autoComplete="new-password"
           />
         </div>
-        <div>
-          <label className="label" htmlFor="logo">
-            Logo <span className="font-normal text-ink-muted">(optional)</span>
-          </label>
-          <input
-            id="logo"
-            type="file"
-            accept="image/*"
-            className="input py-2 file:mr-3 file:rounded file:border-0 file:bg-teal-light file:px-3 file:py-1 file:text-sm file:font-medium file:text-teal-dark"
-            onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-          />
-        </div>
+
         <button type="submit" className="btn-primary w-full" disabled={loading}>
           {loading ? "Creating account…" : "Create account"}
         </button>
@@ -174,7 +198,13 @@ function SignupForm() {
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<AuthShell title="Partner with CADA"><p className="text-sm text-ink-muted">Loading…</p></AuthShell>}>
+    <Suspense
+      fallback={
+        <AuthShell title="Create your brand account">
+          <p className="text-sm text-ink-muted">Loading…</p>
+        </AuthShell>
+      }
+    >
       <SignupForm />
     </Suspense>
   );

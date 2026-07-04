@@ -45,7 +45,14 @@ Index definitions live in `firestore.indexes.json`.
 
 ## 5. Storage rules (brand logos)
 
-Allow public read on `brand-logos/**` and restrict writes to Admin SDK (server uploads only). Example:
+Deploy rules from the portal directory:
+
+```bash
+cd brand-platform/portal
+npm run firebase:deploy
+```
+
+Or deploy storage only — rules live in `storage.rules`:
 
 ```
 rules_version = '2';
@@ -93,6 +100,28 @@ Deploy the Next.js app to your host (Vercel, Cloud Run, etc.) with the same env 
 - `NEXT_PUBLIC_APP_URL` matches the production portal URL
 - Firestore indexes are deployed
 - Storage bucket allows public read for logo URLs (`https://storage.googleapis.com/{bucket}/brand-logos/...`)
+
+**Step-by-step Vercel checklist:** [vercel-deploy-checklist.md](./vercel-deploy-checklist.md)
+
+**Verify backend after deploy:**
+
+```bash
+curl -s https://YOUR-PORTAL-URL/api/health
+# expect: {"ok":true,"checks":{"adminSdk":true,"firestore":true,...}}
+```
+
+From repo root:
+
+```bash
+BASE_URL=https://YOUR-PORTAL-URL brand-platform/scripts/test-portal-smoke.sh
+```
+
+Deploy indexes and rules from `brand-platform/portal`:
+
+```bash
+cd brand-platform/portal
+npm run firebase:deploy
+```
 
 ## 10. Data model
 

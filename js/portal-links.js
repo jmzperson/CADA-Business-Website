@@ -1,5 +1,5 @@
 /**
- * Brand portal base URL for signup / login links on the marketing site.
+ * Brand portal base URL for login links on the marketing site.
  * Override anytime: window.CADA_PARTNERS_URL = 'https://...';
  */
 (function () {

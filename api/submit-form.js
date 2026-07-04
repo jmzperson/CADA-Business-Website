@@ -22,6 +22,14 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  if (scriptUrl.includes('/api/submit-form')) {
+    return res.status(503).json({
+      ok: false,
+      error:
+        'GOOGLE_APPS_SCRIPT_URL is misconfigured (must be your Google Apps Script /exec URL, not this site).',
+    });
+  }
+
   try {
     const upstream = await fetch(scriptUrl, {
       method: 'POST',
@@ -35,14 +43,23 @@ module.exports = async function handler(req, res) {
     try {
       data = JSON.parse(text);
     } catch {
-      data = { ok: upstream.ok };
+      data = null;
     }
 
-    if (!upstream.ok || data.ok === false) {
-      return res.status(502).json({
-        ok: false,
-        error: data.error || 'Upstream form handler failed',
-      });
+    if (!upstream.ok || data?.ok === false) {
+      let error =
+        (data && data.error) ||
+        'Could not save your submission. The Google Apps Script may need to be redeployed.';
+
+      if (upstream.status === 404 || upstream.status === 405) {
+        error =
+          'Google Apps Script web app is not reachable (404/405). Redeploy the script as a web app and update GOOGLE_APPS_SCRIPT_URL in Vercel.';
+      } else if (text.includes('Page Not Found') || text.includes('unable to open the file')) {
+        error =
+          'Google Apps Script deployment not found. Open Website Forms → Extensions → Apps Script → Deploy → New deployment (Web app, Anyone).';
+      }
+
+      return res.status(502).json({ ok: false, error });
     }
 
     return res.status(200).json({ ok: true });

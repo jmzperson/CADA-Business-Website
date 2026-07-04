@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "firebase:deploy": "firebase deploy --only firestore:indexes,firestore:rules,storage --project cada-4ed7c"
   },
   "dependencies": {
     "firebase": "^11.9.1",

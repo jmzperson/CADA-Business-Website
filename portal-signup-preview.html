@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Partner access (preview) | CADA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            teal: '#1CB0C8', 'teal-dark': '#1899B0', 'teal-light': '#DDF8FC',
+            sky: '#E8F7FA', ink: '#3C3C3C', 'ink-light': '#777777', border: '#E5E5E5',
+          },
+          fontFamily: { display: ['Nunito', 'sans-serif'], body: ['DM Sans', 'sans-serif'] },
+          borderRadius: { card: '16px' },
+        },
+      },
+    };
+  </script>
+  <style>
+    .page-shell { min-height: 100vh; background: linear-gradient(to bottom, #E8F7FA, white); }
+    .preview-banner { background: #DDF8FC; border-bottom: 2px solid rgba(28,176,200,0.25); color: #1899B0; font-size: 0.8125rem; font-weight: 600; text-align: center; padding: 0.625rem 1rem; }
+    .card { background: white; border: 2px solid #E5E5E5; border-radius: 16px; padding: 1.5rem; box-shadow: 0 2px 0 #E5E5E5; }
+    .btn-primary { background: #1CB0C8; color: white; box-shadow: 0 4px 0 #1899B0; border-radius: 16px; font-family: Nunito, sans-serif; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; transition: transform 0.2s ease; }
+    .btn-primary:hover { transform: translateY(-2px); }
+    .alert-info { border: 2px solid rgba(28,176,200,0.25); background: #DDF8FC; color: #1899B0; border-radius: 16px; padding: 0.75rem 1rem; font-size: 0.875rem; font-weight: 500; }
+  </style>
+</head>
+<body class="page-shell font-body text-ink antialiased">
+<div class="preview-banner">Static preview — partners join via email invite, not self-signup</div>
+<div class="flex min-h-[calc(100vh-40px)] flex-col items-center justify-center px-5 py-12">
+  <a href="index.html" class="mb-8 inline-flex flex-col items-center">
+    <img src="images/cada-logo.png" alt="CADA" class="h-14 w-auto" width="251" height="80" />
+    <span class="mt-1 font-display text-[10px] font-extrabold uppercase text-ink-light">Partners</span>
+  </a>
+  <div class="card w-full max-w-md">
+    <h1 class="font-display text-xl font-extrabold text-ink">Partner access is by invitation</h1>
+    <p class="mt-1.5 text-sm font-medium text-ink-light">CADA partners receive an email with a secure link to create their account.</p>
+    <div class="alert-info mt-6">Public registration is not available. Check your inbox for an invite from CADA Partners.</div>
+    <div class="mt-6 space-y-4 text-sm text-ink-light">
+      <p><strong class="font-display text-ink">Interested in partnering?</strong> Submit the form on our partnerships page — we&apos;ll email you an invite if it&apos;s a good fit.</p>
+      <a href="cada_partnerships_page/code.html#contact" class="btn-primary w-full py-3.5">Request a partnership</a>
+    </div>
+  </div>
+  <p class="mt-6 text-center text-sm text-ink-light">Already invited? <a id="login-link" href="#" class="font-display font-extrabold text-teal hover:underline">Sign in</a></p>
+</div>
+<script src="js/portal-links.js"></script>
+<script>
+  var portal = window.CADA_PARTNERS_URL || 'http://localhost:3000';
+  document.getElementById('login-link').href = portal + '/login';
+</script>
+</body>
+</html>

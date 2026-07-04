@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CADA — Portal preview</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(160deg, #1a2a32 0%, #0f1419 100%);
+      color: #e8f7fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 1rem 2rem;
+    }
+    h1 { font-size: 1.125rem; font-weight: 600; margin: 0 0 0.25rem; }
+    p { margin: 0 0 1.25rem; font-size: 0.875rem; opacity: 0.75; text-align: center; max-width: 32rem; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+    }
+    .toolbar a, .toolbar button {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 0.5rem 0.875rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .toolbar a:hover, .toolbar button:hover { background: rgba(28,176,200,0.35); border-color: #1CB0C8; }
+    .toolbar a.active { background: #1CB0C8; border-color: #1CB0C8; color: #fff; }
+    .frame-wrap { width: 100%; max-width: 1200px; }
+    .frame-wrap.phone-mode { max-width: 420px; }
+    .phone-wrap { position: relative; padding: 12px; background: #2b2b2b; border-radius: 44px; box-shadow: 0 24px 64px rgba(0,0,0,0.45); }
+    .phone-notch {
+      width: 96px; height: 24px; background: #2b2b2b; border-radius: 0 0 14px 14px;
+      margin: 0 auto -12px; position: relative; z-index: 2;
+    }
+    .preview-frame {
+      width: 100%;
+      border: none;
+      border-radius: 16px;
+      background: #fff;
+      display: block;
+    }
+    .phone-mode .preview-frame {
+      width: 390px;
+      height: 844px;
+      max-width: calc(100vw - 2rem);
+      max-height: calc(100vh - 12rem);
+      border-radius: 32px;
+    }
+    .desktop-mode .preview-frame {
+      height: min(900px, calc(100vh - 10rem));
+      border-radius: 12px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+    }
+    .label { margin-top: 0.75rem; font-size: 0.75rem; opacity: 0.5; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>CADA partner portal preview</h1>
+  <p>Static portal pages — invite-only partner access. Toggle desktop or mobile frame.</p>
+  <div class="toolbar" id="toolbar">
+    <a href="#" data-mode="desktop" data-src="portal-signup-preview.html" class="active">Partner access (desktop)</a>
+    <a href="#" data-mode="phone" data-src="portal-signup-preview.html">Partner access (mobile)</a>
+    <a href="#" id="live-portal" target="_blank" rel="noopener">Live portal login</a>
+    <button type="button" id="reload">Reload</button>
+  </div>
+  <div class="frame-wrap desktop-mode" id="frame-wrap">
+    <div id="phone-chrome" class="phone-wrap" hidden>
+      <div class="phone-notch" aria-hidden="true"></div>
+      <iframe id="preview" class="preview-frame" src="portal-signup-preview.html" title="CADA portal signup preview"></iframe>
+    </div>
+    <iframe id="preview-desktop" class="preview-frame" src="portal-signup-preview.html" title="CADA portal signup preview"></iframe>
+  </div>
+  <p class="label">Direct URL: <code style="opacity:0.8">/portal-signup-preview.html</code></p>
+  <script src="js/portal-links.js"></script>
+  <script>
+    var framePhone = document.querySelector('#phone-chrome iframe');
+    var frameDesktop = document.getElementById('preview-desktop');
+    var frameWrap = document.getElementById('frame-wrap');
+    var phoneChrome = document.getElementById('phone-chrome');
+    var toolbar = document.getElementById('toolbar');
+    var livePortal = document.getElementById('live-portal');
+    var portal = window.CADA_PARTNERS_URL || 'http://localhost:3000';
+    livePortal.href = portal + '/login';
+
+    function activeFrame() {
+      return frameWrap.classList.contains('phone-mode') ? framePhone : frameDesktop;
+    }
+
+    function setMode(mode, src) {
+      var isPhone = mode === 'phone';
+      frameWrap.className = 'frame-wrap ' + (isPhone ? 'phone-mode' : 'desktop-mode');
+      phoneChrome.hidden = !isPhone;
+      frameDesktop.hidden = isPhone;
+      if (src) {
+        framePhone.src = src;
+        frameDesktop.src = src;
+      }
+      toolbar.querySelectorAll('[data-mode]').forEach(function (a) {
+        a.classList.toggle('active', a.getAttribute('data-mode') === mode);
+      });
+    }
+
+    toolbar.addEventListener('click', function (e) {
+      var link = e.target.closest('[data-mode]');
+      if (!link) return;
+      e.preventDefault();
+      setMode(link.getAttribute('data-mode'), link.getAttribute('data-src'));
+    });
+
+    document.getElementById('reload').addEventListener('click', function () {
+      var f = activeFrame();
+      f.src = f.src;
+    });
+  </script>
+</body>
+</html>

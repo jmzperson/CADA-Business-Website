@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-**Backend:** Firebase Auth + Firestore + Storage (project `cada-4ed7c`). See [Firebase portal setup](portal/docs/firebase-portal-setup.md).
+**Backend:** Firebase Auth + Firestore + Storage (project `cada-4ed7c`). See [Firebase portal setup](portal/docs/firebase-portal-setup.md) · [Vercel deploy checklist](portal/docs/vercel-deploy-checklist.md).
 
 Portal staff sign-in is **separate** from CADA app users (`brand_staff` vs `cada_users` collections).
 

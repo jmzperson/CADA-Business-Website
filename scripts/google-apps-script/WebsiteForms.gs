@@ -1,24 +1,34 @@
 /**
  * CADA website form handler → "Website Forms" spreadsheet
  *
- * Tabs:
- *   - PArtnership Forms  ← form_type: partnership
- *   - INfluencer Forms   ← form_type: creator
+ * Tabs (in your Google Drive spreadsheet):
+ *   - PArtnership Forms  ← partnership inquiries
+ *   - INfluencer Forms   ← creator / influencer inquiries
+ *   - Help Forms         ← support page questions (auto-created if missing)
+ *
+ * Each submission appends a new row AND emails james@cadaapp.com.
  *
  * SETUP:
- * 1. Open "Website Forms" → Extensions → Apps Script → paste this file → Save
- * 2. Run setupHeaders() once (authorize when prompted)
- * 3. Deploy → New deployment → Web app
+ * 1. Open your "Website Forms" Google Sheet in Drive
+ * 2. Extensions → Apps Script → paste this file → Save
+ *    (Optional: set SPREADSHEET_ID below if using a standalone script project)
+ * 3. Run setupHeaders() once (authorize when prompted) — creates Help Forms tab
+ * 4. Deploy → New deployment → Web app
  *    - Execute as: Me
  *    - Who has access: Anyone
- * 4. Copy the Web App URL (/exec) into Vercel: GOOGLE_APPS_SCRIPT_URL
- * 5. Redeploy Vercel
+ * 5. Copy the Web App URL (/exec) into Vercel: GOOGLE_APPS_SCRIPT_URL
+ * 6. Redeploy Vercel
  */
 
 const NOTIFY_EMAIL = 'james@cadaapp.com';
 
+// Optional: spreadsheet ID from the URL (…/spreadsheets/d/THIS_PART/edit).
+// Leave empty when the script is opened from Extensions → Apps Script on the sheet.
+const SPREADSHEET_ID = '';
+
 const TAB_PARTNERSHIP = 'PArtnership Forms';
 const TAB_INFLUENCER = 'INfluencer Forms';
+const TAB_HELP = 'Help Forms';
 
 const HEADERS_PARTNERSHIP = [
   'Timestamp',
@@ -37,22 +47,41 @@ const HEADERS_INFLUENCER = [
   'Page URL',
 ];
 
+const HEADERS_HELP = [
+  'Timestamp',
+  'Name',
+  'Email',
+  'Question',
+  'Page URL',
+];
+
+function getSpreadsheet_() {
+  if (SPREADSHEET_ID) {
+    return SpreadsheetApp.openById(SPREADSHEET_ID);
+  }
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+
 function setupHeaders() {
   ensureHeaders_(TAB_PARTNERSHIP, HEADERS_PARTNERSHIP);
   ensureHeaders_(TAB_INFLUENCER, HEADERS_INFLUENCER);
+  ensureHeaders_(TAB_HELP, HEADERS_HELP, true);
 }
 
-function ensureHeaders_(tabName, headers) {
-  const sheet = getSheetByName_(tabName);
+function ensureHeaders_(tabName, headers, createIfMissing) {
+  const sheet = getSheetByName_(tabName, createIfMissing);
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(headers);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
   }
 }
 
-function getSheetByName_(tabName) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(tabName);
+function getSheetByName_(tabName, createIfMissing) {
+  const ss = getSpreadsheet_();
+  let sheet = ss.getSheetByName(tabName);
+  if (!sheet && createIfMissing) {
+    sheet = ss.insertSheet(tabName);
+  }
   if (!sheet) {
     throw new Error(
       'Missing tab "' + tabName + '". Create it in Website Forms or fix the name.'
@@ -67,6 +96,9 @@ function getSheetForFormType_(formType) {
   }
   if (formType === 'creator') {
     return getSheetByName_(TAB_INFLUENCER);
+  }
+  if (formType === 'support') {
+    return getSheetByName_(TAB_HELP, true);
   }
   throw new Error('Unknown form_type: ' + formType);
 }
@@ -128,6 +160,23 @@ function doPost(e) {
         (community ? 'Community:\n' + community + '\n' : '') +
         (page ? 'Page: ' + page + '\n' : '') +
         '\n— CADA website forms';
+    } else if (formType === 'support') {
+      sheet = getSheetForFormType_('support');
+      ensureHeaders_(TAB_HELP, HEADERS_HELP, true);
+
+      const name = String(data.name || '').trim();
+      const message = String(data.message || '').trim();
+
+      row = [new Date(), name, email, message, page];
+
+      subject = 'CADA support question: ' + (name || email);
+      body =
+        'New support question on the CADA website\n\n' +
+        'Name: ' + name + '\n' +
+        'Email: ' + email + '\n' +
+        (message ? 'Question:\n' + message + '\n' : '') +
+        (page ? 'Page: ' + page + '\n' : '') +
+        '\n— CADA website forms';
     } else if (formType === 'challenge_submitted') {
       const name = String(data.company_name || data.name || 'Partner').trim();
       subject = 'Challenge pending review: ' + name;
@@ -151,7 +200,7 @@ function doGet() {
   return jsonResponse({
     ok: true,
     message: 'CADA form handler is running',
-    tabs: [TAB_PARTNERSHIP, TAB_INFLUENCER],
+    tabs: [TAB_PARTNERSHIP, TAB_INFLUENCER, TAB_HELP],
   });
 }
 

@@ -56,9 +56,9 @@ function LoginForm() {
       subtitle="Access your brand dashboard"
       footer={
         <>
-          New partner?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/signup" className="font-display font-extrabold text-teal hover:underline">
-            Register your business
+            Create one
           </Link>
         </>
       }
