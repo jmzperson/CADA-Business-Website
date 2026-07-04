@@ -6,11 +6,12 @@ import {
   getChallengeMetrics,
   parseChallengeInput,
   serializeChallenge,
+  type ChallengeInput,
   type ChallengeRow,
 } from "@/lib/challenges";
 import { submitChallengeForReview } from "@/lib/challenges/submit-for-review";
 
-type CreateBody = Record<string, unknown> & { submit_for_review?: boolean };
+type CreateBody = ChallengeInput & { submit_for_review?: boolean };
 
 export async function GET() {
   try {
