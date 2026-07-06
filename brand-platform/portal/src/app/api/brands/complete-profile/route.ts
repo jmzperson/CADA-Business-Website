@@ -10,6 +10,7 @@ import {
   getStaffByAuthUserId,
   markLeadsSignedUp,
 } from "@/lib/db";
+import { trustEmailFromPasswordAuth } from "@/lib/auth/trust-email";
 import { setPortalStaffClaims } from "@/lib/firebase/portal-claims";
 import { uniqueSlug } from "@/lib/utils";
 
@@ -101,9 +102,8 @@ export async function POST(request: Request) {
 
     await setPortalStaffClaims(user.uid, { brandId: brand.id, staffRole: "admin" });
     await markLeadsSignedUp(email, brand.id);
+    await trustEmailFromPasswordAuth(user.uid);
 
-    // Users arriving via complete-profile already authenticated with their password,
-    // proving email ownership — skip verification. App users (appProfile) are also trusted.
     const emailVerificationRequired = false;
 
     return NextResponse.json(

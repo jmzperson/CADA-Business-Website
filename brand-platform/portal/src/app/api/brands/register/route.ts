@@ -24,7 +24,7 @@ import {
   PORTAL_SESSION_COOKIE,
   portalSessionCookieOptions,
 } from "@/lib/firebase/session";
-import { sendNotificationEmail } from "@/lib/email/send-notification";
+import { trustEmailFromPasswordAuth } from "@/lib/auth/trust-email";
 
 type RegisterBody = {
   business_name?: string;
@@ -57,8 +57,6 @@ export async function POST(request: Request) {
       return jsonError("Invalid category");
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const skipVerification = process.env.SKIP_EMAIL_VERIFICATION === "true";
     const slug = await uniqueSlug(businessName, brandSlugExists);
 
     let userRecord: UserRecord;
@@ -66,7 +64,7 @@ export async function POST(request: Request) {
       userRecord = await adminAuth().createUser({
         email,
         password,
-        emailVerified: skipVerification,
+        emailVerified: true,
         displayName: businessName,
       });
     } catch (err) {
@@ -83,8 +81,6 @@ export async function POST(request: Request) {
         website,
         logoUrl,
         slug,
-        skipVerification,
-        appUrl,
       });
       if (resume) return resume;
 
@@ -103,8 +99,6 @@ export async function POST(request: Request) {
       website,
       logoUrl,
       slug,
-      skipVerification,
-      appUrl,
       isNewAuthUser: true,
     });
   } catch (err) {
@@ -121,8 +115,6 @@ type FinishParams = {
   website: string | null;
   logoUrl: string | null;
   slug: string;
-  skipVerification: boolean;
-  appUrl: string;
   isNewAuthUser: boolean;
 };
 
@@ -136,8 +128,6 @@ async function finishRegistration(params: FinishParams) {
     website,
     logoUrl,
     slug,
-    skipVerification,
-    appUrl,
     isNewAuthUser,
   } = params;
 
@@ -172,16 +162,7 @@ async function finishRegistration(params: FinishParams) {
     throw staffErr;
   }
 
-  if (!skipVerification && !userRecord.emailVerified) {
-    const verifyLink = await adminAuth().generateEmailVerificationLink(email, {
-      url: `${appUrl}/verify-email`,
-    });
-    void sendNotificationEmail({
-      to: email,
-      subject: "Verify your CADA partner account",
-      text: `Welcome to CADA Partners.\n\nVerify your email:\n${verifyLink}\n\n— CADA`,
-    });
-  }
+  await trustEmailFromPasswordAuth(userRecord.uid);
 
   const signIn = await signInWithEmailPassword(email, password);
   const sessionCookie = await createPortalSessionCookie(signIn.idToken);
@@ -198,10 +179,9 @@ async function finishRegistration(params: FinishParams) {
         slug: brand.slug,
         status: brand.status,
       },
-      message: skipVerification
-        ? "Account created."
-        : "Account created. Please verify your email before using the dashboard.",
-      email_verification_required: !skipVerification && !userRecord.emailVerified,
+      message: "Account created.",
+      email_verification_required: false,
+      redirect: "/dashboard",
     },
     { status: 201 }
   );
@@ -216,10 +196,8 @@ async function resumeExistingAuthRegistration(params: {
   website: string | null;
   logoUrl: string | null;
   slug: string;
-  skipVerification: boolean;
-  appUrl: string;
 }): Promise<NextResponse | null> {
-  const { email, password, slug, skipVerification, appUrl } = params;
+  const { email, password, slug } = params;
 
   let signIn;
   try {
@@ -255,14 +233,14 @@ async function resumeExistingAuthRegistration(params: {
   }
 
   if (await isAppUserOnly(signIn.localId)) {
-    // App user with no partner account — set session and send to business profile form.
+    await trustEmailFromPasswordAuth(signIn.localId);
     const sessionCookie = await createPortalSessionCookie(signIn.idToken);
     const cookieStore = await cookies();
     cookieStore.set(PORTAL_SESSION_COOKIE, sessionCookie, portalSessionCookieOptions());
     return NextResponse.json({
       needs_business_profile: true,
       redirect: "/signup/business",
-      message: "Complete your business profile to access the partner portal.",
+      message: "Sign in successful. Complete your business profile next.",
     });
   }
 
@@ -270,6 +248,7 @@ async function resumeExistingAuthRegistration(params: {
   await adminAuth().updateUser(userRecord.uid, {
     password,
     displayName: params.businessName,
+    emailVerified: true,
   });
 
   return finishRegistration({
@@ -281,8 +260,6 @@ async function resumeExistingAuthRegistration(params: {
     website: params.website,
     logoUrl: params.logoUrl,
     slug,
-    skipVerification,
-    appUrl,
     isNewAuthUser: false,
   });
 }

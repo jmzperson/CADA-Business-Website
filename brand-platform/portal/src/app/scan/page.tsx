@@ -9,7 +9,7 @@ type PageProps = {
 
 export default async function ScanPage({ searchParams }: PageProps) {
   const staff = await getStaffContext();
-  if (!staff) redirect("/login?next=/scan");
+  if (!staff) redirect("/signup/business");
 
   if (staff.role !== "admin" && staff.role !== "scanner") {
     redirect("/dashboard");

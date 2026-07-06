@@ -68,19 +68,11 @@ function SignupForm() {
       }
 
       if (data.needs_business_profile || data.redirect === "/signup/business") {
-        router.push("/signup/business");
+        window.location.assign("/signup/business");
         return;
       }
 
-      if (data.email_verification_required) {
-        const verifyUrl = next
-          ? `/verify-email?next=${encodeURIComponent(next)}`
-          : "/verify-email";
-        router.push(verifyUrl);
-      } else {
-        router.push(next);
-        router.refresh();
-      }
+      window.location.assign(next.startsWith("/") ? next : "/dashboard");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {

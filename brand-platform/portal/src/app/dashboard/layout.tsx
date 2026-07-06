@@ -8,14 +8,14 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const staff = await getStaffContext();
-  if (!staff) redirect("/login");
+  if (!staff) redirect("/signup/business");
 
   if (!(await isEmailVerified())) {
     redirect("/verify-email");
   }
 
   const brand = await getBrandProfile(staff.brandId);
-  if (!brand) redirect("/login");
+  if (!brand) redirect("/signup/business");
 
   return (
     <PortalShell brandName={brand.name} role={staff.role}>

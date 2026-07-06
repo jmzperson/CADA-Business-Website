@@ -1,12 +1,11 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AuthShell, Alert } from "@/components/auth-shell";
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/dashboard";
   const emailParam = searchParams.get("email") || "";
@@ -35,20 +34,13 @@ function LoginForm() {
       }
 
       if (data.needs_business_profile || data.redirect === "/signup/business") {
-        router.push("/signup/business");
+        window.location.assign("/signup/business");
         return;
       }
 
-      if (!data.user.email_verified) {
-        const verifyUrl = next
-          ? `/verify-email?next=${encodeURIComponent(next)}`
-          : "/verify-email";
-        router.push(verifyUrl);
-        return;
-      }
-
-      router.push(next);
-      router.refresh();
+      const destination =
+        next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+      window.location.assign(destination);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -59,12 +51,12 @@ function LoginForm() {
   return (
     <AuthShell
       title="Sign in"
-      subtitle="Access your brand dashboard"
+      subtitle="Use your CADA email and password — app users and partners both sign in here."
       footer={
         <>
-          Don&apos;t have an account?{" "}
+          Brand new to CADA Partners?{" "}
           <Link href="/signup" className="font-display font-extrabold text-teal hover:underline">
-            Create one
+            Create a partner account
           </Link>
         </>
       }

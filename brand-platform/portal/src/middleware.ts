@@ -8,6 +8,7 @@ const PUBLIC_PATHS = [
   "/reset-password",
   "/invite",
   "/verify-email",
+  "/signup/business",
   "/admin/leads",
   "/admin/challenges",
   "/api/auth/login",
@@ -17,6 +18,7 @@ const PUBLIC_PATHS = [
   "/api/auth/resend-verification",
   "/api/auth/refresh-session",
   "/api/brands/register",
+  "/api/brands/complete-profile",
   "/api/brands/staff/accept",
   "/api/leads",
   "/api/admin/leads",
@@ -52,7 +54,9 @@ export async function middleware(request: NextRequest) {
   if (hasSession && ["/login", "/signup"].includes(pathname)) {
     const url = request.nextUrl.clone();
     const next = request.nextUrl.searchParams.get("next");
-    url.pathname = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+    // Let the server resolve staff vs dashboard (/ handles the default).
+    url.pathname =
+      next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
     url.search = "";
     return NextResponse.redirect(url);
   }

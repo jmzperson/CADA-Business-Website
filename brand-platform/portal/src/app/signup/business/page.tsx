@@ -81,11 +81,7 @@ export default function BusinessProfilePage() {
         return;
       }
 
-      if (data.email_verification_required) {
-        router.push("/verify-email?next=/dashboard");
-      } else {
-        router.push("/dashboard?welcome=1");
-      }
+      window.location.assign("/dashboard?welcome=1");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {

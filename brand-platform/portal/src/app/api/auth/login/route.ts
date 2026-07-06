@@ -3,9 +3,9 @@ import { cookies } from "next/headers";
 import { handleApiError, jsonError } from "@/lib/api";
 import {
   getPendingInviteStaff,
-  isAppUserOnly,
   resolvePortalStaffForLogin,
 } from "@/lib/auth/resolve-portal-staff";
+import { trustEmailFromPasswordAuth } from "@/lib/auth/trust-email";
 import { signInWithEmailPassword } from "@/lib/firebase/auth-rest";
 import { adminAuth } from "@/lib/firebase/admin";
 import {
@@ -49,21 +49,22 @@ export async function POST(request: Request) {
       // Authenticated but no partner account and no pending invite —
       // whether they're a CADA app user or just a raw Firebase Auth account,
       // send them to complete their business profile.
+      await trustEmailFromPasswordAuth(signIn.localId);
       const sessionCookie = await createPortalSessionCookie(signIn.idToken);
       const cookieStore = await cookies();
       cookieStore.set(PORTAL_SESSION_COOKIE, sessionCookie, portalSessionCookieOptions());
-      const authUser = await adminAuth().getUser(signIn.localId);
       return NextResponse.json({
         needs_business_profile: true,
         redirect: "/signup/business",
         user: {
           id: signIn.localId,
           email: signIn.email ?? email,
-          email_verified: authUser.emailVerified,
+          email_verified: true,
         },
       });
     }
 
+    await trustEmailFromPasswordAuth(signIn.localId);
     const authUser = await adminAuth().getUser(signIn.localId);
     const sessionCookie = await createPortalSessionCookie(signIn.idToken);
     const cookieStore = await cookies();
