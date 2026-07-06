@@ -21,9 +21,10 @@ export async function listChallengesByBrand(brandId: string): Promise<ChallengeD
   const snap = await adminDb()
     .collection(COLLECTIONS.challenges)
     .where("brand_id", "==", brandId)
-    .orderBy("created_at", "desc")
     .get();
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ChallengeDoc);
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as ChallengeDoc)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
 
 export async function listChallengesByStatus(

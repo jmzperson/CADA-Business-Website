@@ -14,7 +14,7 @@ export function OnboardingChecklist({ welcome }: { welcome?: boolean }) {
       .catch(() => setState(null));
   }, []);
 
-  if (!state || state.complete) return null;
+  if (!state || !state.steps || state.complete) return null;
 
   const nextStep = state.steps.find((s) => !s.done);
 
