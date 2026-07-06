@@ -180,7 +180,6 @@ async function finishRegistration(params: FinishParams) {
         status: brand.status,
       },
       message: "Account created.",
-      email_verification_required: false,
       redirect: "/dashboard",
     },
     { status: 201 }

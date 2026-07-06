@@ -8,12 +8,10 @@ export async function GET() {
     const decoded = await getPortalSessionUser();
     if (!decoded) return jsonError("Unauthorized", 401);
 
-    const skip = process.env.SKIP_EMAIL_VERIFICATION === "true";
     const user = await adminAuth().getUser(decoded.uid);
 
     return NextResponse.json({
       email: user.email ?? null,
-      email_verified: skip || user.emailVerified,
     });
   } catch (err) {
     return handleApiError(err);

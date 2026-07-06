@@ -15,7 +15,7 @@ const CATEGORIES = [
 
 type Eligibility =
   | { status: "loading" }
-  | { status: "eligible"; email: string; emailVerified: boolean }
+  | { status: "eligible"; email: string }
   | { status: "ineligible" }
   | { status: "unauthenticated" };
 
@@ -31,7 +31,7 @@ export default function BusinessProfilePage() {
   useEffect(() => {
     fetch("/api/brands/complete-profile")
       .then((r) => r.json())
-      .then((data: { eligible?: boolean; reason?: string; redirect?: string; email?: string; email_verified?: boolean; error?: string }) => {
+      .then((data: { eligible?: boolean; reason?: string; redirect?: string; email?: string; error?: string }) => {
         if (data.error === "Unauthorized" || data.error?.includes("401")) {
           setEligibility({ status: "unauthenticated" });
           router.replace("/login");
@@ -44,7 +44,6 @@ export default function BusinessProfilePage() {
         setEligibility({
           status: "eligible",
           email: data.email ?? "",
-          emailVerified: Boolean(data.email_verified),
         });
       })
       .catch(() => setEligibility({ status: "unauthenticated" }));
@@ -66,7 +65,6 @@ export default function BusinessProfilePage() {
         }),
       });
       const data = await res.json() as {
-        email_verification_required?: boolean;
         redirect?: string;
         message?: string;
         error?: string;

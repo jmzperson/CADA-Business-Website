@@ -33,7 +33,6 @@ export async function GET() {
     return NextResponse.json({
       eligible: true,
       email: authUser.email ?? null,
-      email_verified: authUser.emailVerified,
       has_app_profile: Boolean(appProfile),
     });
   } catch (err) {
@@ -104,15 +103,10 @@ export async function POST(request: Request) {
     await markLeadsSignedUp(email, brand.id);
     await trustEmailFromPasswordAuth(user.uid);
 
-    const emailVerificationRequired = false;
-
     return NextResponse.json(
       {
         brand: { id: brand.id, name: brand.name, slug: brand.slug, status: brand.status },
-        email_verification_required: emailVerificationRequired,
-        message: emailVerificationRequired
-          ? "Profile created. Verify your email to access the dashboard."
-          : "Welcome to CADA Partners!",
+        message: "Welcome to CADA Partners!",
       },
       { status: 201 }
     );

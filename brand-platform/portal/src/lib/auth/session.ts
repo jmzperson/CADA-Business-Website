@@ -1,5 +1,4 @@
 import { getPortalSessionUser } from "@/lib/firebase/session";
-import { adminAuth } from "@/lib/firebase/admin";
 import { getBrandById, getStaffByAuthUserId } from "@/lib/db";
 import type { BrandDoc } from "@/lib/db/types";
 import { AuthError } from "@/lib/errors";
@@ -20,16 +19,6 @@ export type BrandProfile = BrandDoc;
 
 export async function getSessionUser() {
   return getPortalSessionUser();
-}
-
-export async function isEmailVerified() {
-  if (process.env.SKIP_EMAIL_VERIFICATION === "true") return true;
-  const user = await getPortalSessionUser();
-  if (!user) return false;
-  // Session cookie bakes email_verified at creation time — read fresh from Firebase Auth
-  // so the dashboard unlocks immediately after the user clicks the verification link.
-  const fresh = await adminAuth().getUser(user.uid);
-  return Boolean(fresh.emailVerified);
 }
 
 /** Portal staff only — not CADA app users. */
