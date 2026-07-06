@@ -64,6 +64,9 @@ function LoginForm() {
       {searchParams.get("registered") === "1" && (
         <Alert type="success">Account created. Sign in with your email and password.</Alert>
       )}
+      {searchParams.get("reset") === "1" && (
+        <Alert type="success">Password updated. Sign in with your new password.</Alert>
+      )}
       {error && <Alert type="error">{error}</Alert>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

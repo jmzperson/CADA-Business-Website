@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
-import { sendPasswordResetEmail } from "@/lib/firebase/auth-rest";
+import { sendPortalPasswordResetEmail } from "@/lib/auth/send-password-reset";
 import { handleApiError, jsonError } from "@/lib/api";
 
 type Body = { email?: string };
+
+const GENERIC_MESSAGE =
+  "If an account exists for this email, you'll receive a reset link shortly.";
 
 export async function POST(request: Request) {
   try {
@@ -11,17 +14,17 @@ export async function POST(request: Request) {
 
     if (!email) return jsonError("email is required");
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const result = await sendPortalPasswordResetEmail(email);
 
-    try {
-      await sendPasswordResetEmail(email, `${appUrl}/reset-password`);
-    } catch {
-      // Do not reveal whether the account exists
+    if (result.ok) {
+      console.info(`[password-reset] Sent via ${result.provider} for ${email}`);
+    } else if (result.reason === "user-not-found") {
+      // Expected — do not reveal whether the account exists
+    } else {
+      console.error(`[password-reset] Failed for ${email}:`, result.detail ?? result.reason);
     }
 
-    return NextResponse.json({
-      message: "If an account exists for this email, you'll receive a reset link shortly.",
-    });
+    return NextResponse.json({ message: GENERIC_MESSAGE });
   } catch (err) {
     return handleApiError(err);
   }
