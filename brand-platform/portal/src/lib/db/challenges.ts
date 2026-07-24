@@ -31,13 +31,22 @@ export async function listChallengesByStatus(
   status: ChallengeStatus,
   limit = 200
 ): Promise<ChallengeDoc[]> {
-  const snap = await adminDb()
-    .collection(COLLECTIONS.challenges)
-    .where("status", "==", status)
-    .orderBy("submitted_at", "desc")
-    .limit(limit)
-    .get();
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ChallengeDoc);
+  const col = adminDb().collection(COLLECTIONS.challenges);
+  try {
+    const snap = await col
+      .where("status", "==", status)
+      .orderBy("submitted_at", "desc")
+      .limit(limit)
+      .get();
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ChallengeDoc);
+  } catch (err) {
+    // Fallback when the status+submitted_at composite index is missing/undeployed.
+    console.warn("[listChallengesByStatus] ordered query failed, using in-memory sort", err);
+    const snap = await col.where("status", "==", status).limit(limit).get();
+    return snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }) as ChallengeDoc)
+      .sort((a, b) => (b.submitted_at ?? "").localeCompare(a.submitted_at ?? ""));
+  }
 }
 
 export async function listActiveChallengesStartedBefore(iso: string): Promise<ChallengeDoc[]> {

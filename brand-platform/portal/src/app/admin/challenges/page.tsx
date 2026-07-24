@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -32,7 +31,7 @@ function AdminChallengesInner() {
   const searchParams = useSearchParams();
   const [token, setToken] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [authorized, setAuthorized] = useState(false);
+  const [forbidden, setForbidden] = useState(false);
   const [challenges, setChallenges] = useState<QueueChallenge[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -62,22 +61,31 @@ function AdminChallengesInner() {
     if (!authReady) return;
     setLoading(true);
     setError("");
+    setForbidden(false);
     fetch(queueUrl("/api/admin/challenges?status=pending_review"), {
       credentials: "include",
     })
       .then(async (r) => {
-        const json = await r.json();
+        const json = await r.json().catch(() => ({}));
         if (r.status === 401) {
-          setAuthorized(false);
+          // Clear a stale session cookie so /login doesn't bounce back here.
+          await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(
+            () => undefined
+          );
+          window.location.assign(
+            `/login?next=${encodeURIComponent("/admin/challenges")}`
+          );
+          return;
+        }
+        if (r.status === 403) {
+          setForbidden(true);
           setChallenges([]);
           return;
         }
-        if (json.error) {
-          setError(json.error);
-          setAuthorized(false);
+        if (!r.ok || json.error) {
+          setError(json.error || "Failed to load queue");
           return;
         }
-        setAuthorized(true);
         const next = (json.challenges || []) as QueueChallenge[];
         setChallenges(next);
         setSelectedId((prev) => {
@@ -105,7 +113,16 @@ function AdminChallengesInner() {
         method: "POST",
         credentials: "include",
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(
+          () => undefined
+        );
+        window.location.assign(
+          `/login?next=${encodeURIComponent("/admin/challenges")}`
+        );
+        return;
+      }
       if (!res.ok) {
         setError(json.error || "Failed to post challenge");
         return;
@@ -130,7 +147,16 @@ function AdminChallengesInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: rejectReason || undefined }),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(
+          () => undefined
+        );
+        window.location.assign(
+          `/login?next=${encodeURIComponent("/admin/challenges")}`
+        );
+        return;
+      }
       if (!res.ok) {
         setError(json.error || "Reject failed");
         return;
@@ -154,22 +180,15 @@ function AdminChallengesInner() {
     );
   }
 
-  if (!authorized) {
+  if (forbidden) {
     return (
       <div className="portal-main">
         <div className="card max-w-md">
-          <h1 className="font-display text-2xl font-extrabold text-ink">Challenge approvals</h1>
+          <h1 className="font-display text-2xl font-extrabold text-ink">Admin access required</h1>
           <p className="mt-2 text-sm font-medium text-ink-light">
-            Sign in with your CADA admin account to review pending partner challenges and post
-            them to the app.
+            This account is signed in, but it is not a CADA admin. Use an admin email such as
+            james@cadaapp.com.
           </p>
-          {error && <div className="alert-error mt-4">{error}</div>}
-          <Link
-            href={`/login?next=${encodeURIComponent("/admin/challenges")}`}
-            className="btn-primary mt-6 inline-flex"
-          >
-            Sign in as admin
-          </Link>
         </div>
       </div>
     );
@@ -183,16 +202,23 @@ function AdminChallengesInner() {
         {challenges.length} pending · Approve posts the challenge live in the CADA app
       </p>
 
-      {error && <div className="alert-error mt-4">{error}</div>}
+      {error && (
+        <div className="alert-error mt-4">
+          {error}
+          <button type="button" className="ml-3 underline" onClick={loadQueue}>
+            Retry
+          </button>
+        </div>
+      )}
       {message && <div className="alert-success mt-4">{message}</div>}
 
-      {challenges.length === 0 ? (
+      {challenges.length === 0 && !error ? (
         <div className="table-shell mt-6">
           <p className="p-8 text-center text-sm font-medium text-ink-light">
             No challenges pending review.
           </p>
         </div>
-      ) : (
+      ) : challenges.length > 0 ? (
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <div className="table-shell overflow-hidden">
             <ul className="divide-y divide-border">
@@ -316,7 +342,7 @@ function AdminChallengesInner() {
             </div>
           )}
         </div>
-      )}
+      ) : null}
 
       {rejectId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">

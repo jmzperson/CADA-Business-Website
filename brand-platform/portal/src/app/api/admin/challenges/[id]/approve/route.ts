@@ -1,16 +1,20 @@
 import { NextResponse } from "next/server";
 import { getChallengeById, updateChallenge } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
-import { requireCadaAdmin } from "@/lib/admin/auth";
+import { requireCadaAdminAccess } from "@/lib/admin/auth";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: RouteParams) {
   try {
-    const admin = await requireCadaAdmin(request);
-    if (!admin) {
-      return jsonError("Unauthorized", 401);
+    const access = await requireCadaAdminAccess(request);
+    if (!access.ok) {
+      return jsonError(
+        access.status === 403 ? "CADA admin access required" : "Unauthorized",
+        access.status
+      );
     }
+    const admin = access.admin;
 
     const { id } = await params;
     const row = await getChallengeById(id);
