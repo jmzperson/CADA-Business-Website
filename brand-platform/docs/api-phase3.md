@@ -65,12 +65,13 @@ Create a new challenge in **draft** status.
 | Field | Required | Notes |
 |-------|----------|-------|
 | title | yes | |
-| habit_type | yes | `gym`, `text_friend`, `call_family`, `journal`, `stretch`, `run`, `custom` |
+| habit_type | yes | Predefined slug (see Habit types) or free-text custom label (max 80 chars) |
 | offer_headline | yes | First-time offer text |
 | starts_at | yes | ISO 8601 or datetime-local converted |
+| ends_at | yes* | Set from start + time period (`1`, `7`, or `30` days) in the portal UI |
+| join_window_days | yes | Time to join after start: `1`, `3`, `5`, `7`, or `30` |
 | description | no | Defaults to `""` |
 | offer_code | no | Promo code |
-| ends_at | no | Must be after `starts_at` |
 | max_redemptions | no | Positive integer cap |
 
 **Response `201`**
@@ -241,12 +242,12 @@ draft ──submit for review──► pending_review ──approve──► act
 
 ## Habit types (align with iOS)
 
-| Value | App display |
-|-------|-------------|
-| `gym` | Knocked Out · Gym |
-| `text_friend` | Crushed · Text a Friend |
-| `call_family` | Call Family |
-| `run` | Run |
-| `stretch` | Stretch |
-| `journal` | Journal |
-| `custom` | Custom |
+Grouped in the partner portal. Values are snake_case slugs; partners can also type a custom free-text habit (stored as the label string).
+
+| Category | Values |
+|----------|--------|
+| Body | `exercise`, `run`, `gym`, `walk`, `stretch`, `sleep_8hrs`, `nap` |
+| Connection | `call_family`, `text_friend`, `quality_time`, `do_something_kind` |
+| Presence | `meditate`, `no_phone_morning`, `hike`, `gratitude`, `one_hard_thing` |
+| Mind & Growth | `read`, `journal`, `write`, `draw`, `create_something`, `study`, `practice_guitar`, `practice_language` |
+| Custom | Free-text label (or legacy `custom`) |

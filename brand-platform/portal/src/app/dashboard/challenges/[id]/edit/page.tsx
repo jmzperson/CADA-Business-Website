@@ -7,8 +7,16 @@ import { ChallengeForm } from "@/components/challenge-form";
 import { ChallengeStatusBadge } from "@/components/challenge-status-badge";
 import { PageHeader } from "@/components/page-header";
 import { Alert } from "@/components/auth-shell";
-import { toDatetimeLocal, type ChallengeFormValues } from "@/lib/challenge-form";
-import type { ChallengeStatus } from "@/lib/challenge-constants";
+import {
+  durationFromStored,
+  endsAtFromDuration,
+  habitFieldsFromStored,
+  joinWindowFromStored,
+  resolveStoredHabitType,
+  toDatetimeLocal,
+  type ChallengeFormValues,
+} from "@/lib/challenge-form";
+import { CUSTOM_HABIT_VALUE, type ChallengeStatus } from "@/lib/challenge-constants";
 
 type Challenge = {
   id: string;
@@ -20,6 +28,7 @@ type Challenge = {
   status: ChallengeStatus;
   starts_at: string;
   ends_at: string | null;
+  join_window_days: number | null;
   max_redemptions: number | null;
   enrolled_count: number;
   completion_count: number;
@@ -57,9 +66,12 @@ export default function EditChallengePage() {
         "title",
         "description",
         "habit_type",
+        "habit_custom_label",
         "offer_headline",
         "offer_code",
         "starts_at",
+        "duration_days",
+        "join_window_days",
         "ends_at",
         "max_redemptions",
       ]);
@@ -68,7 +80,10 @@ export default function EditChallengePage() {
       return new Set<keyof ChallengeFormValues>([
         "title",
         "habit_type",
+        "habit_custom_label",
         "starts_at",
+        "duration_days",
+        "join_window_days",
         "ends_at",
       ]);
     }
@@ -76,9 +91,12 @@ export default function EditChallengePage() {
       "title",
       "description",
       "habit_type",
+      "habit_custom_label",
       "offer_headline",
       "offer_code",
       "starts_at",
+      "duration_days",
+      "join_window_days",
       "ends_at",
       "max_redemptions",
     ]);
@@ -97,15 +115,21 @@ export default function EditChallengePage() {
 
         setIsAdmin(meData.staff?.role === "admin");
         const c = cData.challenge as Challenge;
+        const durationDays = durationFromStored(c.starts_at, c.ends_at);
+        const startsAt = toDatetimeLocal(c.starts_at);
         setChallenge(c);
         setValues({
           title: c.title,
           description: c.description,
-          habit_type: c.habit_type,
+          ...habitFieldsFromStored(c.habit_type),
           offer_headline: c.offer_headline,
           offer_code: c.offer_code || "",
-          starts_at: toDatetimeLocal(c.starts_at),
-          ends_at: c.ends_at ? toDatetimeLocal(c.ends_at) : "",
+          starts_at: startsAt,
+          duration_days: durationDays,
+          join_window_days: joinWindowFromStored(c.join_window_days),
+          ends_at: c.ends_at
+            ? toDatetimeLocal(c.ends_at)
+            : endsAtFromDuration(startsAt, durationDays),
           max_redemptions: c.max_redemptions ? String(c.max_redemptions) : "",
         });
 
@@ -134,11 +158,22 @@ export default function EditChallengePage() {
       };
 
       if (challenge?.status === "draft" || challenge?.status === "rejected") {
+        const habitType = resolveStoredHabitType(values);
+        if (!habitType) {
+          setError(
+            values.habit_type === CUSTOM_HABIT_VALUE
+              ? "Enter a custom habit name"
+              : "Select a linked habit"
+          );
+          setLoading(false);
+          return false;
+        }
         Object.assign(payload, {
           title: values.title,
-          habit_type: values.habit_type,
+          habit_type: habitType,
           starts_at: values.starts_at,
-          ends_at: values.ends_at || null,
+          ends_at: values.ends_at || endsAtFromDuration(values.starts_at, values.duration_days),
+          join_window_days: values.join_window_days,
         });
       }
 

@@ -5,7 +5,7 @@ import {
   expireEndedChallenges,
   getRedemptionUsageByChallenge,
   isAtRedemptionCap,
-  isChallengeInDiscoveryWindow,
+  isChallengeJoinable,
   spotsRemaining,
 } from "@/lib/challenges";
 import { requireAppUser } from "@/lib/mobile/auth";
@@ -24,9 +24,10 @@ export async function GET(request: Request) {
       const brand = await getBrandById(row.brand_id);
       if (!brand || brand.status !== "active") continue;
       if (
-        !isChallengeInDiscoveryWindow({
+        !isChallengeJoinable({
           starts_at: row.starts_at,
           ends_at: row.ends_at,
+          join_window_days: row.join_window_days,
         })
       ) {
         continue;
@@ -53,6 +54,7 @@ export async function GET(request: Request) {
             offer_code: row.offer_code,
             starts_at: row.starts_at,
             ends_at: row.ends_at,
+            join_window_days: row.join_window_days,
             max_redemptions: row.max_redemptions,
             brands: {
               id: row.brands.id,

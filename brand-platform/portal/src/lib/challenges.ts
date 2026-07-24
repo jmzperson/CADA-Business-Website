@@ -21,6 +21,7 @@ export {
   parseChallengeInput,
   validatePublishFields,
   isChallengeInDiscoveryWindow,
+  isChallengeJoinable,
   isAtRedemptionCap,
   spotsRemaining,
 } from "@/lib/challenge-constants";
