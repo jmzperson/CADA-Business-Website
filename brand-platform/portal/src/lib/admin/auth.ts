@@ -60,6 +60,45 @@ export async function getCadaAdminFromSession(): Promise<CadaAdminContext | null
   };
 }
 
+export type CadaAdminAccess =
+  | { ok: true; admin: CadaAdminContext }
+  | { ok: false; status: 401 | 403 };
+
+/**
+ * Prefer logged-in CADA admin session, then CADA_ADMIN_TOKEN.
+ * Returns 403 when a valid session exists but the user is not a CADA admin.
+ */
+export async function requireCadaAdminAccess(request: Request): Promise<CadaAdminAccess> {
+  const user = await getPortalSessionUser();
+  if (user) {
+    const email = user.email?.trim().toLowerCase() ?? null;
+    if (isCadaAdminIdentity(email, user as Record<string, unknown>)) {
+      return {
+        ok: true,
+        admin: {
+          email: email ?? user.uid,
+          authUserId: user.uid,
+          via: "session",
+        },
+      };
+    }
+    return { ok: false, status: 403 };
+  }
+
+  if (verifyCadaAdminToken(request)) {
+    return {
+      ok: true,
+      admin: {
+        email: "CADA_ADMIN",
+        authUserId: "token",
+        via: "token",
+      },
+    };
+  }
+
+  return { ok: false, status: 401 };
+}
+
 /**
  * Accept either a logged-in CADA admin session or CADA_ADMIN_TOKEN.
  * Prefer session when both are present.
@@ -67,16 +106,6 @@ export async function getCadaAdminFromSession(): Promise<CadaAdminContext | null
 export async function requireCadaAdmin(
   request: Request
 ): Promise<CadaAdminContext | null> {
-  const fromSession = await getCadaAdminFromSession();
-  if (fromSession) return fromSession;
-
-  if (verifyCadaAdminToken(request)) {
-    return {
-      email: "CADA_ADMIN",
-      authUserId: "token",
-      via: "token",
-    };
-  }
-
-  return null;
+  const access = await requireCadaAdminAccess(request);
+  return access.ok ? access.admin : null;
 }

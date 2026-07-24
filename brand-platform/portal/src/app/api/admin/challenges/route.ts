@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import { getBrandById, listChallengesByStatus } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
-import { requireCadaAdmin } from "@/lib/admin/auth";
+import { requireCadaAdminAccess } from "@/lib/admin/auth";
 import { habitLabel } from "@/lib/challenge-form";
 import type { ChallengeStatus } from "@/lib/db/types";
 
 export async function GET(request: Request) {
   try {
-    if (!(await requireCadaAdmin(request))) {
-      return jsonError("Unauthorized", 401);
+    const access = await requireCadaAdminAccess(request);
+    if (!access.ok) {
+      return jsonError(
+        access.status === 403 ? "CADA admin access required" : "Unauthorized",
+        access.status
+      );
     }
 
     const { searchParams } = new URL(request.url);

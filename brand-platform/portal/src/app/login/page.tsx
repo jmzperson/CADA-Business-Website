@@ -56,7 +56,7 @@ function LoginForm() {
   return (
     <AuthShell
       title="Sign in"
-      subtitle="Use your CADA email and password — app users and partners both sign in here."
+      subtitle="Partners and CADA admins use the same sign-in. Admins go straight to challenge review."
       footer={
         <>
           Brand new to CADA Partners?{" "}
