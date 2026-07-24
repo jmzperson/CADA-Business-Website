@@ -173,7 +173,9 @@ Submit for CADA review → `status: pending_review`, `submitted_at: now`. Does *
 
 ## CADA admin — challenge approval
 
-Token: `CADA_ADMIN_TOKEN` (Bearer header or `?token=` query). Same pattern as partnership leads.
+**Preferred:** sign in with an email listed in `CADA_ADMIN_EMAILS` (or Firebase claim `cadaAdmin=true`). Lands on `/admin/challenges`.
+
+**Also:** `CADA_ADMIN_TOKEN` (Bearer header or `?token=` query) for scripts and automation.
 
 | Endpoint | Purpose |
 |----------|---------|
@@ -182,7 +184,13 @@ Token: `CADA_ADMIN_TOKEN` (Bearer header or `?token=` query). Same pattern as pa
 | `POST /api/admin/challenges/:id/approve` | → `active`, sets `published_at`, `reviewed_at`, `reviewed_by` |
 | `POST /api/admin/challenges/:id/reject` | → `rejected`, optional `rejection_reason` in body |
 
-**Web UI:** `/admin/challenges?token=YOUR_CADA_ADMIN_TOKEN`
+**Web UI:** `/admin/challenges` (after admin login) or `/admin/challenges?token=YOUR_CADA_ADMIN_TOKEN`
+
+Grant admin:
+
+```bash
+cd brand-platform/portal && node ../scripts/grant-cada-admin.mjs james@cadaapp.com
+```
 
 Approved challenges become visible in the mobile app (`GET /api/v1/challenges/available`, `GET /api/v1/challenges/:id`). `pending_review`, `draft`, and `rejected` are excluded. Challenges past `ends_at` are auto-ended on discovery requests and via `POST /api/v1/cron/expire-challenges` (same `CRON_SECRET` as expire-rewards).
 

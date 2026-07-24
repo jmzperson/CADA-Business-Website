@@ -6,13 +6,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="page-shell min-h-screen">
       <header className="site-nav">
         <div className="mx-auto flex h-[60px] max-w-5xl items-center justify-between px-5">
-          <CadaLogo href="/admin/leads" subtitle="Admin" size="sm" />
+          <CadaLogo href="/admin/challenges" subtitle="Admin" size="sm" />
           <nav className="flex items-center gap-4 font-display text-sm font-bold">
+            <Link href="/admin/challenges" className="text-ink-light hover:text-teal">
+              Challenges
+            </Link>
             <Link href="/admin/leads" className="text-ink-light hover:text-teal">
               Leads
             </Link>
-            <Link href="/admin/challenges" className="text-ink-light hover:text-teal">
-              Challenges
+            <Link href="/login" className="text-ink-light hover:text-teal">
+              Account
             </Link>
           </nav>
         </div>

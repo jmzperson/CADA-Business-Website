@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifyCadaAdminToken } from "@/lib/admin/auth";
+import { requireCadaAdmin } from "@/lib/admin/auth";
 import {
   BRAND_CATEGORIES,
   handleApiError,
@@ -30,7 +30,7 @@ type InviteBody = {
 /** CADA admin: create a brand + send invite email (invite-only onboarding). */
 export async function POST(request: Request) {
   try {
-    if (!verifyCadaAdminToken(request)) {
+    if (!(await requireCadaAdmin(request))) {
       return jsonError("Unauthorized", 401);
     }
 

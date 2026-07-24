@@ -54,7 +54,8 @@ Generate secrets with `openssl rand -hex 24`:
 
 | Variable | Purpose |
 |----------|---------|
-| `CADA_ADMIN_TOKEN` | `/admin/challenges` approve/reject |
+| `CADA_ADMIN_EMAILS` | Comma-separated emails that can sign in and approve challenges |
+| `CADA_ADMIN_TOKEN` | Optional token for `/admin/challenges` scripts / deep links |
 | `LEADS_ADMIN_TOKEN` | `/admin/leads` |
 | `CRON_SECRET` | `/api/v1/cron/*` |
 | `REWARD_TOKEN_ENCRYPTION_KEY` | QR rewards (`openssl rand -base64 32`) |

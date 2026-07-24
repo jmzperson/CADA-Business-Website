@@ -74,14 +74,30 @@ Firebase sends password-reset links when using `sendPasswordResetEmail` (Identit
 
 Add authorized domains in Firebase Auth → Settings → Authorized domains (e.g. `localhost`, `partners.cadaapp.com`).
 
-## 7. Portal staff vs app users
+## 7. Portal staff vs app users vs CADA admins
 
-| Collection | Purpose |
-|------------|---------|
-| `brand_staff` | Portal login (partners dashboard) |
+| Identity | Purpose |
+|----------|---------|
+| `brand_staff` | Partner portal login (brand dashboard) |
 | `cada_users` | CADA iOS app users |
+| `CADA_ADMIN_EMAILS` / claim `cadaAdmin` | Platform admins — approve challenges at `/admin/challenges` |
 
-Portal sessions use the `__portal_session` HTTP-only cookie. Custom claims (`portalStaff`, `brandId`, `staffRole`) are set on Firebase Auth users for staff.
+Portal sessions use the `__portal_session` HTTP-only cookie. Custom claims (`portalStaff`, `brandId`, `staffRole`, optional `cadaAdmin`) are set on Firebase Auth users.
+
+### Grant a CADA admin (e.g. james@cadaapp.com)
+
+1. Set `CADA_ADMIN_EMAILS=james@cadaapp.com` in `.env.local` and Vercel.
+2. Create/update the Firebase Auth user and claim:
+
+```bash
+cd brand-platform/portal
+# FIREBASE_SERVICE_ACCOUNT_JSON must be set (or present in .env.local)
+node ../scripts/grant-cada-admin.mjs james@cadaapp.com
+```
+
+3. Sign in at `/login` → redirects to `/admin/challenges` with the pending queue.
+
+`CADA_ADMIN_TOKEN` remains optional for scripts and automation.
 
 ## 8. Local development
 
