@@ -10,9 +10,9 @@ export type ChallengeSubmittedContext = {
 
 function adminReviewUrl(): string | null {
   const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-  const token = process.env.CADA_ADMIN_TOKEN?.trim();
   if (!base) return null;
-  return token ? `${base}/admin/challenges?token=${encodeURIComponent(token)}` : `${base}/admin/challenges`;
+  // Prefer the login-backed queue; token deep-link remains for automation.
+  return `${base}/admin/challenges`;
 }
 
 function formatDate(iso: string | null): string {

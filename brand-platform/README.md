@@ -38,10 +38,22 @@ See [API reference](docs/api-phase3.md).
 /dashboard/challenges          List (all staff)
 /dashboard/challenges/new      Create draft (admin)
 /dashboard/challenges/:id/edit Manage / view
-/admin/challenges              CADA approval queue (token)
+/admin/challenges              CADA approval queue (admin login or token)
 ```
 
 Brand flow: **draft** → **Submit for review** → **pending_review** → CADA **approve** → **active** (visible in app).
+
+CADA platform admins (e.g. `james@cadaapp.com`) sign in at `/login` and land on `/admin/challenges`. Set:
+
+```bash
+CADA_ADMIN_EMAILS=james@cadaapp.com
+```
+
+Create the Firebase Auth user + claim with:
+
+```bash
+cd brand-platform/portal && node ../scripts/grant-cada-admin.mjs james@cadaapp.com
+```
 
 On submit for review, Resend emails `james@cadaapp.com` with challenge details and an admin review link. Portal env:
 

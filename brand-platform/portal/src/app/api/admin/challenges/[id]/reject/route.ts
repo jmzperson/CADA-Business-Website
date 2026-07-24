@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { getChallengeById, updateChallenge } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
-import { verifyCadaAdminToken } from "@/lib/admin/auth";
+import { requireCadaAdmin } from "@/lib/admin/auth";
 
 type RouteParams = { params: Promise<{ id: string }> };
 type Body = { reason?: string };
 
 export async function POST(request: Request, { params }: RouteParams) {
   try {
-    if (!verifyCadaAdminToken(request)) {
+    const admin = await requireCadaAdmin(request);
+    if (!admin) {
       return jsonError("Unauthorized", 401);
     }
 
@@ -26,7 +27,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     const updated = await updateChallenge(id, {
       status: "rejected",
       reviewed_at: now,
-      reviewed_by: "CADA_ADMIN",
+      reviewed_by: admin.email,
       rejection_reason: reason,
     });
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getBrandById, getChallengeById } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
-import { verifyCadaAdminToken } from "@/lib/admin/auth";
+import { requireCadaAdmin } from "@/lib/admin/auth";
 import { habitLabel } from "@/lib/challenge-form";
 import { getChallengeMetrics, serializeChallenge, type ChallengeRow } from "@/lib/challenges";
 
@@ -9,7 +9,7 @@ type RouteParams = { params: Promise<{ id: string }> };
 
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    if (!verifyCadaAdminToken(request)) {
+    if (!(await requireCadaAdmin(request))) {
       return jsonError("Unauthorized", 401);
     }
 

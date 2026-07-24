@@ -38,6 +38,11 @@ function LoginForm() {
         return;
       }
 
+      if (data.cada_admin || data.redirect === "/admin/challenges") {
+        window.location.assign("/admin/challenges");
+        return;
+      }
+
       const destination =
         next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
       window.location.assign(destination);

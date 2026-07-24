@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getBrandById, listChallengesByStatus } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
-import { verifyCadaAdminToken } from "@/lib/admin/auth";
+import { requireCadaAdmin } from "@/lib/admin/auth";
 import { habitLabel } from "@/lib/challenge-form";
 import type { ChallengeStatus } from "@/lib/db/types";
 
 export async function GET(request: Request) {
   try {
-    if (!verifyCadaAdminToken(request)) {
+    if (!(await requireCadaAdmin(request))) {
       return jsonError("Unauthorized", 401);
     }
 

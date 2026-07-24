@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -15,10 +16,12 @@ type QueueChallenge = {
 
 function AdminChallengesInner() {
   const searchParams = useSearchParams();
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [authorized, setAuthorized] = useState(false);
   const [challenges, setChallenges] = useState<QueueChallenge[]>([]);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -28,17 +31,37 @@ function AdminChallengesInner() {
       typeof window !== "undefined" ? sessionStorage.getItem("cada_admin_token") : null;
     const t = fromUrl || stored || "";
     if (fromUrl) sessionStorage.setItem("cada_admin_token", fromUrl);
-    setToken(t);
+    setToken(t || null);
+    setAuthReady(true);
   }, [searchParams]);
 
+  function queueUrl(path: string) {
+    if (!token) return path;
+    const sep = path.includes("?") ? "&" : "?";
+    return `${path}${sep}token=${encodeURIComponent(token)}`;
+  }
+
   function loadQueue() {
-    if (!token) return;
+    if (!authReady) return;
     setLoading(true);
-    fetch(`/api/admin/challenges?status=pending_review&token=${encodeURIComponent(token)}`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.error) setError(json.error);
-        else setChallenges(json.challenges || []);
+    setError("");
+    fetch(queueUrl("/api/admin/challenges?status=pending_review"), {
+      credentials: "include",
+    })
+      .then(async (r) => {
+        const json = await r.json();
+        if (r.status === 401) {
+          setAuthorized(false);
+          setChallenges([]);
+          return;
+        }
+        if (json.error) {
+          setError(json.error);
+          setAuthorized(false);
+          return;
+        }
+        setAuthorized(true);
+        setChallenges(json.challenges || []);
       })
       .catch(() => setError("Failed to load queue"))
       .finally(() => setLoading(false));
@@ -47,13 +70,13 @@ function AdminChallengesInner() {
   useEffect(() => {
     loadQueue();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [authReady, token]);
 
   async function approve(id: string) {
-    const res = await fetch(
-      `/api/admin/challenges/${id}/approve?token=${encodeURIComponent(token)}`,
-      { method: "POST" }
-    );
+    const res = await fetch(queueUrl(`/api/admin/challenges/${id}/approve`), {
+      method: "POST",
+      credentials: "include",
+    });
     const json = await res.json();
     if (!res.ok) {
       setError(json.error || "Approve failed");
@@ -63,14 +86,12 @@ function AdminChallengesInner() {
   }
 
   async function reject(id: string) {
-    const res = await fetch(
-      `/api/admin/challenges/${id}/reject?token=${encodeURIComponent(token)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: rejectReason || undefined }),
-      }
-    );
+    const res = await fetch(queueUrl(`/api/admin/challenges/${id}/reject`), {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: rejectReason || undefined }),
+    });
     const json = await res.json();
     if (!res.ok) {
       setError(json.error || "Reject failed");
@@ -81,15 +102,29 @@ function AdminChallengesInner() {
     setChallenges((prev) => prev.filter((c) => c.id !== id));
   }
 
-  if (!token) {
+  if (!authReady || loading) {
+    return (
+      <div className="portal-main">
+        <p className="text-sm font-medium text-ink-light">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!authorized) {
     return (
       <div className="portal-main">
         <div className="card max-w-md">
           <h1 className="font-display text-2xl font-extrabold text-ink">Challenge approvals</h1>
           <p className="mt-2 text-sm font-medium text-ink-light">
-            CADA internal queue. Open with{" "}
-            <code className="text-xs">?token=YOUR_CADA_ADMIN_TOKEN</code>
+            Sign in with your CADA admin account to review pending partner challenges.
           </p>
+          {error && <div className="alert-error mt-4">{error}</div>}
+          <Link
+            href={`/login?next=${encodeURIComponent("/admin/challenges")}`}
+            className="btn-primary mt-6 inline-flex"
+          >
+            Sign in as admin
+          </Link>
         </div>
       </div>
     );
@@ -106,9 +141,7 @@ function AdminChallengesInner() {
       {error && <div className="alert-error mt-4">{error}</div>}
 
       <div className="table-shell mt-6">
-        {loading ? (
-          <p className="p-6 text-sm font-medium text-ink-light">Loading…</p>
-        ) : challenges.length === 0 ? (
+        {challenges.length === 0 ? (
           <p className="p-8 text-center text-sm font-medium text-ink-light">
             No challenges pending review.
           </p>
