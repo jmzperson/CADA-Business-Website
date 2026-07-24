@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChallengeForm } from "@/components/challenge-form";
-import { emptyChallengeForm } from "@/lib/challenge-form";
+import { emptyChallengeForm, endsAtFromDuration, resolveStoredHabitType } from "@/lib/challenge-form";
 import { Alert } from "@/components/auth-shell";
 import { PageHeader } from "@/components/page-header";
 
@@ -20,14 +20,26 @@ export default function NewChallengePage() {
     setLoading(true);
 
     try {
+      const habitType = resolveStoredHabitType(values);
+      if (!habitType) {
+        setError(
+          values.habit_type === "custom"
+            ? "Enter a custom habit name"
+            : "Select a linked habit"
+        );
+        setLoading(false);
+        return;
+      }
+
       const payload = {
         title: values.title,
         description: values.description,
-        habit_type: values.habit_type,
+        habit_type: habitType,
         offer_headline: values.offer_headline,
         offer_code: values.offer_code || null,
         starts_at: values.starts_at,
-        ends_at: values.ends_at || null,
+        ends_at: values.ends_at || endsAtFromDuration(values.starts_at, values.duration_days),
+        join_window_days: values.join_window_days,
         max_redemptions: values.max_redemptions ? Number(values.max_redemptions) : null,
         ...(publish ? { submit_for_review: true } : {}),
       };

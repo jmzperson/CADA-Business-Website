@@ -13,12 +13,35 @@ import Foundation
 // MARK: - Models
 
 public enum HabitType: String, Codable, CaseIterable, Sendable {
-    case gym
-    case text_friend
-    case call_family
-    case journal
-    case stretch
+    // Body
+    case exercise
     case run
+    case gym
+    case walk
+    case stretch
+    case sleep_8hrs
+    case nap
+    // Connection
+    case call_family
+    case text_friend
+    case quality_time
+    case do_something_kind
+    // Presence
+    case meditate
+    case no_phone_morning
+    case hike
+    case gratitude
+    case one_hard_thing
+    // Mind & Growth
+    case read
+    case journal
+    case write
+    case draw
+    case create_something
+    case study
+    case practice_guitar
+    case practice_language
+    // Custom / legacy
     case custom
 }
 

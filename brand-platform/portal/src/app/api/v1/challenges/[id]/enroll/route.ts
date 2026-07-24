@@ -11,6 +11,7 @@ import {
   getRedemptionUsageByChallenge,
   isAtRedemptionCap,
   isChallengeInDiscoveryWindow,
+  isChallengeJoinable,
 } from "@/lib/challenges";
 import { requireAppUser } from "@/lib/mobile/auth";
 import { ensureCadaUser } from "@/lib/mobile/users";
@@ -36,7 +37,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       return jsonError("Challenge is not available for enrollment", 410);
     }
 
-    if (!isChallengeInDiscoveryWindow(challenge)) {
+    if (!isChallengeJoinable(challenge)) {
       return jsonError("Challenge is not available for enrollment", 410);
     }
 

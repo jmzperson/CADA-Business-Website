@@ -41,7 +41,12 @@ components:
         description: { type: string }
         habit_type:
           type: string
-          enum: [gym, text_friend, call_family, journal, stretch, run, custom]
+          description: >
+            Habit slug (exercise, run, gym, walk, stretch, sleep_8hrs, nap,
+            call_family, text_friend, quality_time, do_something_kind,
+            meditate, no_phone_morning, hike, gratitude, one_hard_thing,
+            read, journal, write, draw, create_something, study,
+            practice_guitar, practice_language, custom) or a free-text custom label.
         offer_headline: { type: string }
         offer_code: { type: string, nullable: true }
         starts_at: { type: string, format: date-time }
@@ -67,7 +72,12 @@ components:
       properties:
         habit_type:
           type: string
-          enum: [gym, text_friend, call_family, journal, stretch, run, custom]
+          description: >
+            Habit slug (exercise, run, gym, walk, stretch, sleep_8hrs, nap,
+            call_family, text_friend, quality_time, do_something_kind,
+            meditate, no_phone_morning, hike, gratitude, one_hard_thing,
+            read, journal, write, draw, create_something, study,
+            practice_guitar, practice_language, custom) or a free-text custom label.
         completed_at: { type: string, format: date-time }
         source_event_id: { type: string }
         challenge_id: { type: string, format: uuid }

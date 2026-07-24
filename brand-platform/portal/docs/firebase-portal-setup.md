@@ -86,13 +86,14 @@ Portal sessions use the `__portal_session` HTTP-only cookie. Custom claims (`por
 
 ### Grant a CADA admin (e.g. james@cadaapp.com)
 
-1. Set `CADA_ADMIN_EMAILS=james@cadaapp.com` in `.env.local` and Vercel.
-2. Create/update the Firebase Auth user and claim:
+1. Set `CADA_ADMIN_EMAILS=james@cadaapp.com,tannermesaric@gmail.com` in `.env.local` and Vercel.
+2. Create/update each Firebase Auth user and claim:
 
 ```bash
 cd brand-platform/portal
 # FIREBASE_SERVICE_ACCOUNT_JSON must be set (or present in .env.local)
 node ../scripts/grant-cada-admin.mjs james@cadaapp.com
+node ../scripts/grant-cada-admin.mjs tannermesaric@gmail.com
 ```
 
 3. Sign in at `/login` → redirects to `/admin/challenges` with the pending queue.

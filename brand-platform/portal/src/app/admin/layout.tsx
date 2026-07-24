@@ -1,7 +1,22 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CadaLogo } from "@/components/cada-logo";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
+  async function signOut() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } catch {
+      // still clear local navigation
+    }
+    router.push("/login");
+    router.refresh();
+  }
+
   return (
     <div className="page-shell min-h-screen">
       <header className="site-nav">
@@ -14,9 +29,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link href="/admin/leads" className="text-ink-light hover:text-teal">
               Leads
             </Link>
-            <Link href="/login" className="text-ink-light hover:text-teal">
-              Account
-            </Link>
+            <button
+              type="button"
+              onClick={signOut}
+              className="text-ink-light hover:text-teal"
+            >
+              Sign out
+            </button>
           </nav>
         </div>
       </header>

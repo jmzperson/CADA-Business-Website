@@ -40,6 +40,9 @@ export async function notifyChallengeSubmitted(
     challenge.description ? `Description: ${challenge.description}` : null,
     `Starts: ${formatDate(challenge.starts_at)}`,
     `Ends: ${formatDate(challenge.ends_at)}`,
+    challenge.join_window_days != null
+      ? `Time to join: ${challenge.join_window_days} day${challenge.join_window_days === 1 ? "" : "s"}`
+      : null,
     challenge.max_redemptions != null ? `Max redemptions: ${challenge.max_redemptions}` : null,
     "",
     `Challenge ID: ${challenge.id}`,

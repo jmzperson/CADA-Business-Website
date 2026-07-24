@@ -550,7 +550,7 @@ On `429`, backoff and retry — do not hammer.
 
 Must match exactly in enroll, discover, and habit-completed:
 
-`gym` · `text_friend` · `call_family` · `journal` · `stretch` · `run` · `custom`
+`exercise` · `run` · `gym` · `walk` · `stretch` · `sleep_8hrs` · `nap` · `call_family` · `text_friend` · `quality_time` · `do_something_kind` · `meditate` · `no_phone_morning` · `hike` · `gratitude` · `one_hard_thing` · `read` · `journal` · `write` · `draw` · `create_something` · `study` · `practice_guitar` · `practice_language` · `custom` (or free-text)
 
 ---
 

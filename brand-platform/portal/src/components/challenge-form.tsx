@@ -1,7 +1,14 @@
 "use client";
 
-import { HABIT_TYPES } from "@/lib/challenge-constants";
-import type { ChallengeFormValues } from "@/lib/challenge-form";
+import {
+  CHALLENGE_DURATIONS,
+  CUSTOM_HABIT_VALUE,
+  HABIT_CATEGORIES,
+  JOIN_WINDOW_OPTIONS,
+  type ChallengeDurationDays,
+  type JoinWindowDays,
+} from "@/lib/challenge-constants";
+import { withSyncedDuration, type ChallengeFormValues } from "@/lib/challenge-form";
 
 type Props = {
   values: ChallengeFormValues;
@@ -18,6 +25,8 @@ export function ChallengeForm({ values, onChange, disabled, readOnlyFields }: Pr
   function fieldDisabled(key: keyof ChallengeFormValues) {
     return disabled || readOnlyFields?.has(key);
   }
+
+  const isCustom = values.habit_type === CUSTOM_HABIT_VALUE;
 
   return (
     <div className="space-y-5">
@@ -59,16 +68,46 @@ export function ChallengeForm({ values, onChange, disabled, readOnlyFields }: Pr
             id="habit_type"
             className="input"
             value={values.habit_type}
-            onChange={(e) => update("habit_type", e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              onChange({
+                ...values,
+                habit_type: next,
+                habit_custom_label:
+                  next === CUSTOM_HABIT_VALUE ? values.habit_custom_label : "",
+              });
+            }}
             disabled={fieldDisabled("habit_type")}
             required
           >
-            {HABIT_TYPES.map((h) => (
-              <option key={h.value} value={h.value}>
-                {h.label} — {h.appLabel}
-              </option>
+            {HABIT_CATEGORIES.map((category) => (
+              <optgroup key={category.id} label={category.label}>
+                {category.habits.map((h) => (
+                  <option key={h.value} value={h.value}>
+                    {h.label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
+            <option value={CUSTOM_HABIT_VALUE}>Custom — type your own</option>
           </select>
+          {isCustom && (
+            <div className="mt-3">
+              <label className="label" htmlFor="habit_custom_label">
+                Custom habit name
+              </label>
+              <input
+                id="habit_custom_label"
+                className="input"
+                placeholder="e.g. Morning yoga"
+                value={values.habit_custom_label}
+                onChange={(e) => update("habit_custom_label", e.target.value)}
+                disabled={fieldDisabled("habit_custom_label")}
+                required
+                maxLength={80}
+              />
+            </div>
+          )}
           <p className="mt-1 text-xs text-ink-muted">
             Users must complete this habit type in the CADA app.
           </p>
@@ -137,24 +176,72 @@ export function ChallengeForm({ values, onChange, disabled, readOnlyFields }: Pr
             type="datetime-local"
             className="input"
             value={values.starts_at}
-            onChange={(e) => update("starts_at", e.target.value)}
+            onChange={(e) =>
+              onChange(withSyncedDuration(values, { starts_at: e.target.value }))
+            }
             disabled={fieldDisabled("starts_at")}
             required
           />
         </div>
         <div>
-          <label className="label" htmlFor="ends_at">
-            End date <span className="font-normal text-ink-muted">(optional)</span>
+          <label className="label" htmlFor="duration_days">
+            Time period
           </label>
-          <input
-            id="ends_at"
-            type="datetime-local"
+          <select
+            id="duration_days"
             className="input"
-            value={values.ends_at}
-            onChange={(e) => update("ends_at", e.target.value)}
-            disabled={fieldDisabled("ends_at")}
-          />
+            value={values.duration_days}
+            onChange={(e) =>
+              onChange(
+                withSyncedDuration(values, {
+                  duration_days: Number(e.target.value) as ChallengeDurationDays,
+                })
+              )
+            }
+            disabled={fieldDisabled("duration_days") || fieldDisabled("ends_at")}
+            required
+          >
+            {CHALLENGE_DURATIONS.map((d) => (
+              <option key={d.value} value={d.value}>
+                {d.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-ink-muted">
+            Challenge ends{" "}
+            {values.ends_at
+              ? new Date(values.ends_at).toLocaleString(undefined, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })
+              : "—"}
+          </p>
         </div>
+      </div>
+
+      <div>
+        <label className="label" htmlFor="join_window_days">
+          Time to join
+        </label>
+        <select
+          id="join_window_days"
+          className="input max-w-xs"
+          value={values.join_window_days}
+          onChange={(e) =>
+            update("join_window_days", Number(e.target.value) as JoinWindowDays)
+          }
+          disabled={fieldDisabled("join_window_days")}
+          required
+        >
+          {JOIN_WINDOW_OPTIONS.map((d) => (
+            <option key={d.value} value={d.value}>
+              {d.label}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-ink-muted">
+          How long after the start date new users can enroll in this challenge.
+        </p>
       </div>
     </div>
   );

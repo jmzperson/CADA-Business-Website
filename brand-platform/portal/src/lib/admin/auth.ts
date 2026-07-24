@@ -6,8 +6,10 @@ export type CadaAdminContext = {
   via: "session" | "token";
 };
 
+const DEFAULT_CADA_ADMIN_EMAILS = "james@cadaapp.com,tannermesaric@gmail.com";
+
 function parseAdminEmails(): Set<string> {
-  const raw = process.env.CADA_ADMIN_EMAILS?.trim() || "";
+  const raw = process.env.CADA_ADMIN_EMAILS?.trim() || DEFAULT_CADA_ADMIN_EMAILS;
   return new Set(
     raw
       .split(",")

@@ -9,6 +9,7 @@ export type AvailableChallenge = {
   offer_code: string | null;
   starts_at: string;
   ends_at: string | null;
+  join_window_days?: number | null;
   /** Null when the challenge has no redemption cap. */
   spots_remaining: number | null;
   brand: {
@@ -85,6 +86,7 @@ export function serializeAvailableChallenge(
     offer_code: string | null;
     starts_at: string;
     ends_at: string | null;
+    join_window_days?: number | null;
     max_redemptions?: number | null;
     brands: {
       id: string;
@@ -105,6 +107,7 @@ export function serializeAvailableChallenge(
     offer_code: row.offer_code,
     starts_at: row.starts_at,
     ends_at: row.ends_at,
+    join_window_days: row.join_window_days ?? null,
     spots_remaining: spotsRemaining,
     brand: {
       id: row.brands.id,

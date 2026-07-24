@@ -49,6 +49,8 @@ export type ChallengeDoc = {
   status: ChallengeStatus;
   starts_at: string;
   ends_at: string | null;
+  /** Days after start that new users may enroll. Null on legacy rows = open until ends_at. */
+  join_window_days: number | null;
   completion_rule: string;
   max_redemptions: number | null;
   published_at: string | null;

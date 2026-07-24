@@ -47,6 +47,7 @@ export async function GET(request: Request, { params }: RouteParams) {
           offer_code: row.offer_code,
           starts_at: row.starts_at,
           ends_at: row.ends_at,
+          join_window_days: row.join_window_days,
           max_redemptions: row.max_redemptions,
           brands: {
             id: brand.id,

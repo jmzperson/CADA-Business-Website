@@ -85,6 +85,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       delete data.habit_type;
       delete data.starts_at;
       delete data.ends_at;
+      delete data.join_window_days;
     }
 
     if (errors.length > 0) {

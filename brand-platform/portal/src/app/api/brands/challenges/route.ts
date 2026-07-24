@@ -55,6 +55,7 @@ export async function POST(request: Request) {
       status: "draft",
       starts_at: data.starts_at as string,
       ends_at: (data.ends_at as string | null) ?? null,
+      join_window_days: (data.join_window_days as number | null) ?? null,
       completion_rule: "single_completion",
       max_redemptions: (data.max_redemptions as number | null) ?? null,
       published_at: null,

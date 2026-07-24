@@ -7,7 +7,7 @@
  *   node ../scripts/grant-cada-admin.mjs james@cadaapp.com --password 'TempPass123!'
  *
  * Also set in portal env (Vercel / .env.local):
- *   CADA_ADMIN_EMAILS=james@cadaapp.com
+ *   CADA_ADMIN_EMAILS=james@cadaapp.com,tannermesaric@gmail.com
  */
 const { readFileSync, existsSync } = require("fs");
 const { resolve } = require("path");

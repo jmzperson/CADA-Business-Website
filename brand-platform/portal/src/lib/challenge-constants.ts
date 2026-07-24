@@ -1,16 +1,106 @@
-/** Client-safe challenge types and helpers (no DB / firebase-admin deps). */
-
-export const HABIT_TYPES = [
-  { value: "gym", label: "Gym", appLabel: "Knocked Out · Gym" },
-  { value: "text_friend", label: "Text a Friend", appLabel: "Crushed · Text a Friend" },
-  { value: "call_family", label: "Call Family", appLabel: "Call Family" },
-  { value: "run", label: "Run", appLabel: "Run" },
-  { value: "stretch", label: "Stretch", appLabel: "Stretch" },
-  { value: "journal", label: "Journal", appLabel: "Journal" },
-  { value: "custom", label: "Custom", appLabel: "Custom habit" },
+/** Challenge campaign length options (sets ends_at from starts_at). */
+export const CHALLENGE_DURATIONS = [
+  { value: 1, label: "1 day" },
+  { value: 7, label: "7 days" },
+  { value: 30, label: "30 days" },
 ] as const;
 
-export type HabitType = (typeof HABIT_TYPES)[number]["value"];
+export type ChallengeDurationDays = (typeof CHALLENGE_DURATIONS)[number]["value"];
+
+export function isChallengeDurationDays(value: number): value is ChallengeDurationDays {
+  return CHALLENGE_DURATIONS.some((d) => d.value === value);
+}
+
+/** How long after start users may enroll in the challenge. */
+export const JOIN_WINDOW_OPTIONS = [
+  { value: 1, label: "1 day" },
+  { value: 3, label: "3 days" },
+  { value: 5, label: "5 days" },
+  { value: 7, label: "7 days" },
+  { value: 30, label: "30 days" },
+] as const;
+
+export type JoinWindowDays = (typeof JOIN_WINDOW_OPTIONS)[number]["value"];
+
+export function isJoinWindowDays(value: number): value is JoinWindowDays {
+  return JOIN_WINDOW_OPTIONS.some((d) => d.value === value);
+}
+
+/** Client-safe challenge types and helpers (no DB / firebase-admin deps). */
+
+export type HabitOption = {
+  value: string;
+  label: string;
+  appLabel: string;
+};
+
+export type HabitCategory = {
+  id: string;
+  label: string;
+  habits: readonly HabitOption[];
+};
+
+/** Grouped habit options shown in the partner challenge form. */
+export const HABIT_CATEGORIES: readonly HabitCategory[] = [
+  {
+    id: "body",
+    label: "Body",
+    habits: [
+      { value: "exercise", label: "Exercise", appLabel: "Exercise" },
+      { value: "run", label: "Run", appLabel: "Run" },
+      { value: "gym", label: "Gym", appLabel: "Knocked Out · Gym" },
+      { value: "walk", label: "Walk", appLabel: "Walk" },
+      { value: "stretch", label: "Stretch", appLabel: "Stretch" },
+      { value: "sleep_8hrs", label: "Sleep 8hrs", appLabel: "Sleep 8hrs" },
+      { value: "nap", label: "Nap", appLabel: "Nap" },
+    ],
+  },
+  {
+    id: "connection",
+    label: "Connection",
+    habits: [
+      { value: "call_family", label: "Call Family", appLabel: "Call Family" },
+      { value: "text_friend", label: "Text a Friend", appLabel: "Crushed · Text a Friend" },
+      { value: "quality_time", label: "Quality Time", appLabel: "Quality Time" },
+      { value: "do_something_kind", label: "Do Something Kind", appLabel: "Do Something Kind" },
+    ],
+  },
+  {
+    id: "presence",
+    label: "Presence",
+    habits: [
+      { value: "meditate", label: "Meditate", appLabel: "Meditate" },
+      { value: "no_phone_morning", label: "No Phone Morning", appLabel: "No Phone Morning" },
+      { value: "hike", label: "Hike", appLabel: "Hike" },
+      { value: "gratitude", label: "Gratitude", appLabel: "Gratitude" },
+      { value: "one_hard_thing", label: "One Hard Thing", appLabel: "One Hard Thing" },
+    ],
+  },
+  {
+    id: "mind_growth",
+    label: "Mind & Growth",
+    habits: [
+      { value: "read", label: "Read", appLabel: "Read" },
+      { value: "journal", label: "Journal", appLabel: "Journal" },
+      { value: "write", label: "Write", appLabel: "Write" },
+      { value: "draw", label: "Draw", appLabel: "Draw" },
+      { value: "create_something", label: "Create Something", appLabel: "Create Something" },
+      { value: "study", label: "Study", appLabel: "Study" },
+      { value: "practice_guitar", label: "Practice Guitar", appLabel: "Practice Guitar" },
+      { value: "practice_language", label: "Practice Language", appLabel: "Practice Language" },
+    ],
+  },
+] as const;
+
+/** Flat list of predefined habits (excludes the Custom UI sentinel). */
+export const HABIT_TYPES: readonly HabitOption[] = HABIT_CATEGORIES.flatMap((c) => [...c.habits]);
+
+/** Select value that unlocks the free-text custom habit field. Not stored on challenges. */
+export const CUSTOM_HABIT_VALUE = "custom";
+
+const KNOWN_HABIT_VALUES = new Set(HABIT_TYPES.map((h) => h.value));
+
+export type HabitType = string;
 export type ChallengeStatus = "draft" | "pending_review" | "rejected" | "active" | "ended";
 
 export type ChallengeRow = {
@@ -24,6 +114,8 @@ export type ChallengeRow = {
   status: ChallengeStatus;
   starts_at: string;
   ends_at: string | null;
+  /** Days after starts_at that new users may enroll. Null = legacy (open until ends_at). */
+  join_window_days: number | null;
   completion_rule: string;
   max_redemptions: number | null;
   published_at: string | null;
@@ -43,6 +135,7 @@ export type ChallengeInput = {
   offer_code?: string | null;
   starts_at?: string;
   ends_at?: string | null;
+  join_window_days?: number | null;
   max_redemptions?: number | null;
 };
 
@@ -68,6 +161,7 @@ export function serializeChallenge(row: ChallengeRow, metrics?: ChallengeMetrics
     status: row.status,
     starts_at: row.starts_at,
     ends_at: row.ends_at,
+    join_window_days: row.join_window_days ?? null,
     max_redemptions: row.max_redemptions,
     published_at: row.published_at,
     submitted_at: row.submitted_at,
@@ -82,8 +176,20 @@ export function serializeChallenge(row: ChallengeRow, metrics?: ChallengeMetrics
   };
 }
 
+export function isKnownHabitType(value: string): boolean {
+  return KNOWN_HABIT_VALUES.has(value);
+}
+
+/**
+ * Accepts predefined habit slugs, free-text custom labels, or legacy `custom`.
+ * The form UI uses `custom` only as a sentinel and stores the typed label instead.
+ */
 export function validateHabitType(value: string): value is HabitType {
-  return HABIT_TYPES.some((h) => h.value === value);
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (trimmed === CUSTOM_HABIT_VALUE) return true;
+  if (isKnownHabitType(trimmed)) return true;
+  return trimmed.length <= 80;
 }
 
 export function parseChallengeInput(body: ChallengeInput, partial = false) {
@@ -105,8 +211,9 @@ export function parseChallengeInput(body: ChallengeInput, partial = false) {
   }
 
   if (body.habit_type !== undefined) {
-    if (!validateHabitType(body.habit_type)) errors.push("invalid habit_type");
-    else data.habit_type = body.habit_type;
+    const habit = body.habit_type.trim();
+    if (!validateHabitType(habit)) errors.push("invalid habit_type");
+    else data.habit_type = habit;
   } else if (!partial) {
     errors.push("habit_type is required");
   }
@@ -141,6 +248,21 @@ export function parseChallengeInput(body: ChallengeInput, partial = false) {
     }
   }
 
+  if (body.join_window_days !== undefined) {
+    if (body.join_window_days === null) {
+      data.join_window_days = null;
+    } else {
+      const days = Number(body.join_window_days);
+      if (!isJoinWindowDays(days)) {
+        errors.push("join_window_days must be 1, 3, 5, 7, or 30");
+      } else {
+        data.join_window_days = days;
+      }
+    }
+  } else if (!partial) {
+    errors.push("join_window_days is required");
+  }
+
   if (body.max_redemptions !== undefined) {
     if (body.max_redemptions === null || body.max_redemptions === ("" as unknown)) {
       data.max_redemptions = null;
@@ -169,12 +291,30 @@ export function validatePublishFields(row: ChallengeRow) {
   if (!row.habit_type) errors.push("habit_type is required");
   if (!row.offer_headline?.trim()) errors.push("offer_headline is required");
   if (!row.starts_at) errors.push("starts_at is required");
+  if (row.join_window_days != null && !isJoinWindowDays(row.join_window_days)) {
+    errors.push("join_window_days must be 1, 3, 5, 7, or 30");
+  }
   if (row.ends_at && new Date(row.ends_at) <= new Date(row.starts_at)) {
     errors.push("ends_at must be after starts_at");
   }
   return errors;
 }
 
+export function joinWindowClosesAt(
+  startsAt: string,
+  joinWindowDays: number,
+  endsAt?: string | null
+): Date {
+  const close = new Date(startsAt);
+  close.setDate(close.getDate() + joinWindowDays);
+  if (endsAt) {
+    const ends = new Date(endsAt);
+    if (!Number.isNaN(ends.getTime()) && ends < close) return ends;
+  }
+  return close;
+}
+
+/** True while the challenge is live for enrolled users (habit completion window). */
 export function isChallengeInDiscoveryWindow(
   row: { starts_at: string; ends_at: string | null; status?: string },
   now = new Date()
@@ -183,6 +323,21 @@ export function isChallengeInDiscoveryWindow(
   if (new Date(row.starts_at) > now) return false;
   if (row.ends_at && new Date(row.ends_at) <= now) return false;
   return true;
+}
+
+/** True while new users may still enroll (respects time-to-join window). */
+export function isChallengeJoinable(
+  row: {
+    starts_at: string;
+    ends_at: string | null;
+    join_window_days?: number | null;
+    status?: string;
+  },
+  now = new Date()
+): boolean {
+  if (!isChallengeInDiscoveryWindow(row, now)) return false;
+  if (row.join_window_days == null) return true;
+  return now < joinWindowClosesAt(row.starts_at, row.join_window_days, row.ends_at);
 }
 
 export function isAtRedemptionCap(
