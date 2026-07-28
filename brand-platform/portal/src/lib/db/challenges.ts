@@ -50,13 +50,7 @@ export async function listChallengesByStatus(
 }
 
 export async function listActiveChallengesStartedBefore(iso: string): Promise<ChallengeDoc[]> {
-  const snap = await adminDb()
-    .collection(COLLECTIONS.challenges)
-    .where("status", "==", "active")
-    .where("starts_at", "<=", iso)
-    .orderBy("starts_at", "desc")
-    .get();
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ChallengeDoc);
+  return listActiveChallengesStarted(iso);
 }
 
 export async function listChallengesByBrandAndStatus(
@@ -120,11 +114,31 @@ export async function getChallengesByIds(ids: string[]): Promise<ChallengeDoc[]>
 
 /** Active challenges that have started (app discovery feed). */
 export async function listActiveChallengesStarted(now: string): Promise<ChallengeDoc[]> {
-  const snap = await adminDb()
-    .collection(COLLECTIONS.challenges)
-    .where("status", "==", "active")
-    .where("starts_at", "<=", now)
-    .orderBy("starts_at", "desc")
-    .get();
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ChallengeDoc);
+  try {
+    const snap = await adminDb()
+      .collection(COLLECTIONS.challenges)
+      .where("status", "==", "active")
+      .where("starts_at", "<=", now)
+      .orderBy("starts_at", "desc")
+      .get();
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ChallengeDoc);
+  } catch (err) {
+    // Composite index status+starts_at may still be building after first deploy.
+    const message = err instanceof Error ? err.message : String(err);
+    if (!message.includes("FAILED_PRECONDITION") && !message.includes("requires an index")) {
+      throw err;
+    }
+    console.warn(
+      "[listActiveChallengesStarted] composite index unavailable; falling back to status-only query",
+      message
+    );
+    const snap = await adminDb()
+      .collection(COLLECTIONS.challenges)
+      .where("status", "==", "active")
+      .get();
+    return snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }) as ChallengeDoc)
+      .filter((row) => row.starts_at <= now)
+      .sort((a, b) => b.starts_at.localeCompare(a.starts_at));
+  }
 }

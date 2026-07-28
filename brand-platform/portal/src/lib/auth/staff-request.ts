@@ -13,7 +13,7 @@ export async function getStaffContextFromRequest(
   const user = await getAppUserFromRequest(request);
   if (!user) return null;
 
-  const staff = await getStaffByAuthUserId(user.uid);
+  const staff = await getStaffByAuthUserId(user.token.uid);
   if (!staff || !staff.accepted_at) return null;
 
   return {
@@ -22,6 +22,6 @@ export async function getStaffContextFromRequest(
     role: staff.role,
     email: staff.email,
     acceptedAt: staff.accepted_at,
-    authUserId: user.uid,
+    authUserId: user.token.uid,
   };
 }

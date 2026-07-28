@@ -14,15 +14,13 @@ import {
   isChallengeJoinable,
 } from "@/lib/challenges";
 import { requireAppUser } from "@/lib/mobile/auth";
-import { ensureCadaUser } from "@/lib/mobile/users";
 import { nowIso } from "@/lib/db/brands";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: RouteParams) {
   try {
-    const authUser = await requireAppUser(request);
-    const cadaUser = await ensureCadaUser(authUser.uid);
+    const { cadaUser } = await requireAppUser(request);
     const { id: challengeId } = await params;
 
     await expireEndedChallenges();

@@ -7,7 +7,6 @@ import {
 } from "@/lib/db";
 import { handleApiError } from "@/lib/api";
 import { requireAppUser } from "@/lib/mobile/auth";
-import { ensureCadaUser } from "@/lib/mobile/users";
 import {
   completionRequired,
   type EnrollmentSummary,
@@ -16,8 +15,7 @@ import type { HabitType } from "@/lib/challenges";
 
 export async function GET(request: Request) {
   try {
-    const authUser = await requireAppUser(request);
-    const cadaUser = await ensureCadaUser(authUser.uid);
+    const { cadaUser } = await requireAppUser(request);
 
     const enrollments = await listEnrollmentsByUser(cadaUser.id);
     enrollments.sort((a, b) => b.enrolled_at.localeCompare(a.enrolled_at));

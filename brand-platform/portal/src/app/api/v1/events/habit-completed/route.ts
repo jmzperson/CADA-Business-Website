@@ -4,7 +4,6 @@ import { validateHabitType } from "@/lib/challenges";
 import { processHabitCompleted } from "@/lib/mobile/attribution";
 import { requireAppUser } from "@/lib/mobile/auth";
 import { formatRewardForApi } from "@/lib/mobile/serialize";
-import { ensureCadaUser } from "@/lib/mobile/users";
 import { checkRateLimit } from "@/lib/mobile/rate-limit";
 
 type Body = {
@@ -16,8 +15,7 @@ type Body = {
 
 export async function POST(request: Request) {
   try {
-    const authUser = await requireAppUser(request);
-    const cadaUser = await ensureCadaUser(authUser.uid);
+    const { cadaUser } = await requireAppUser(request);
 
     const body = (await request.json()) as Body;
     const habitType = body.habit_type?.trim();
