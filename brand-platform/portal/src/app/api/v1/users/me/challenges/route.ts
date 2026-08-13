@@ -33,9 +33,10 @@ export async function GET(request: Request) {
     const summaries: EnrollmentSummary[] = [];
     for (const row of enrollments) {
       const challenge = await getChallengeById(row.challenge_id);
-      const brand = challenge ? await getBrandById(challenge.brand_id) : null;
+      if (!challenge || challenge.status !== "active") continue;
+      const brand = await getBrandById(challenge.brand_id);
 
-      const required = completionRequired(challenge?.completion_rule ?? "single_completion");
+      const required = completionRequired(challenge.completion_rule ?? "single_completion");
       const current = row.completion_count ?? 0;
       const rewardId = rewardByEnrollment.get(row.id) ?? null;
 
