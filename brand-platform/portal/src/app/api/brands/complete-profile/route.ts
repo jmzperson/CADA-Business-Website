@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase/admin";
 import { BRAND_CATEGORIES, handleApiError, jsonError } from "@/lib/api";
+import { isPlatformAdmin } from "@/lib/admin/auth";
 import { getPortalSessionUser } from "@/lib/firebase/session";
 import {
   brandSlugExists,
@@ -19,6 +20,20 @@ export async function GET() {
   try {
     const user = await getPortalSessionUser();
     if (!user) return jsonError("Unauthorized", 401);
+
+    if (
+      await isPlatformAdmin({
+        email: user.email,
+        uid: user.uid,
+        claims: user as unknown as Record<string, unknown>,
+      })
+    ) {
+      return NextResponse.json({
+        eligible: false,
+        reason: "cada_admin",
+        redirect: "/admin/challenges",
+      });
+    }
 
     const existingStaff = await getStaffByAuthUserId(user.uid);
     if (existingStaff?.accepted_at) {
@@ -51,6 +66,19 @@ export async function POST(request: Request) {
   try {
     const user = await getPortalSessionUser();
     if (!user) return jsonError("Unauthorized", 401);
+
+    if (
+      await isPlatformAdmin({
+        email: user.email,
+        uid: user.uid,
+        claims: user as unknown as Record<string, unknown>,
+      })
+    ) {
+      return NextResponse.json(
+        { redirect: "/admin/challenges", message: "CADA admins use the review queue." },
+        { status: 409 }
+      );
+    }
 
     const existingStaff = await getStaffByAuthUserId(user.uid);
     if (existingStaff?.accepted_at) {

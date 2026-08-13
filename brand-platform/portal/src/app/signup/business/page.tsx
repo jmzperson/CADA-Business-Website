@@ -37,8 +37,8 @@ export default function BusinessProfilePage() {
           router.replace("/login");
           return;
         }
-        if (data.eligible === false && data.redirect === "/dashboard") {
-          router.replace("/dashboard");
+        if (data.eligible === false && data.redirect) {
+          router.replace(data.redirect);
           return;
         }
         setEligibility({

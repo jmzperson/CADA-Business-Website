@@ -133,6 +133,17 @@ export type PartnershipLeadDoc = {
   updated_at: string;
 };
 
+/** CADA platform admin — approve/reject partner challenges. Doc id is the email. */
+export type CadaAdminDoc = {
+  id: string;
+  email: string;
+  auth_user_id: string | null;
+  granted_by: string;
+  granted_at: string;
+  disabled: boolean;
+  updated_at: string;
+};
+
 export const COLLECTIONS = {
   brands: "brands",
   brandStaff: "brand_staff",
@@ -155,4 +166,5 @@ export const COLLECTIONS = {
   redemptionsByBrand: "redemptions_by_brand",
   redemptionAttempts: "redemption_attempts",
   leads: "partnership_leads",
+  cadaAdmins: "cada_admins",
 } as const;
