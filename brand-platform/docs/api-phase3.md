@@ -174,7 +174,13 @@ Submit for CADA review → `status: pending_review`, `submitted_at: now`. Does *
 
 ## CADA admin — challenge approval
 
-**Preferred:** sign in with an email listed in `CADA_ADMIN_EMAILS` (or Firebase claim `cadaAdmin=true`). Lands on `/admin/challenges`.
+**Preferred:** sign in as a CADA platform admin. Identity is:
+
+1. Firestore `cada_admins` (managed at `/admin/users`)
+2. Bootstrap emails in `CADA_ADMIN_EMAILS`
+3. Firebase claim `cadaAdmin=true`
+
+Login lands on `/admin/challenges`. Grant or revoke further admins at `/admin/users`.
 
 **Also:** `CADA_ADMIN_TOKEN` (Bearer header or `?token=` query) for scripts and automation.
 
@@ -184,10 +190,13 @@ Submit for CADA review → `status: pending_review`, `submitted_at: now`. Does *
 | `GET /api/admin/challenges/:id` | Full challenge detail + brand + metrics |
 | `POST /api/admin/challenges/:id/approve` | → `active`, sets `published_at`, `reviewed_at`, `reviewed_by` |
 | `POST /api/admin/challenges/:id/reject` | → `rejected`, optional `rejection_reason` in body |
+| `GET /api/admin/users` | List platform admins |
+| `POST /api/admin/users` | Grant admin (`{ "email": "…" }`) |
+| `DELETE /api/admin/users` | Revoke admin (`{ "email": "…" }`) |
 
-**Web UI:** `/admin/challenges` (after admin login) or `/admin/challenges?token=YOUR_CADA_ADMIN_TOKEN`
+**Web UI:** `/admin/challenges` (approve/reject) · `/admin/users` (set admins)
 
-Grant admin:
+Bootstrap the first Auth user:
 
 ```bash
 cd brand-platform/portal && node ../scripts/grant-cada-admin.mjs james@cadaapp.com
@@ -222,7 +231,8 @@ End an active challenge early → `status: ended`, `ends_at` set to now (if not 
 | `/dashboard/challenges` | All staff (list) |
 | `/dashboard/challenges/new` | Admin only |
 | `/dashboard/challenges/:id/edit` | All staff (admin edit, scanner view) |
-| `/admin/challenges` | CADA internal (token) |
+| `/admin/challenges` | CADA platform admin session |
+| `/admin/users` | CADA platform admin session |
 
 ---
 

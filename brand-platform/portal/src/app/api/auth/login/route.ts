@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { isCadaAdminIdentity } from "@/lib/admin/auth";
+import { isPlatformAdmin } from "@/lib/admin/auth";
+import { ensureCadaAdminOnLogin } from "@/lib/admin/grant";
 import { handleApiError, jsonError } from "@/lib/api";
 import {
   getPendingInviteStaff,
@@ -41,7 +42,11 @@ export async function POST(request: Request) {
     await trustEmailFromPasswordAuth(signIn.localId);
     const authUser = await adminAuth().getUser(signIn.localId);
     const claims = (authUser.customClaims ?? {}) as Record<string, unknown>;
-    const cadaAdmin = isCadaAdminIdentity(email, claims);
+    const cadaAdmin = await isPlatformAdmin({
+      email,
+      uid: signIn.localId,
+      claims,
+    });
 
     // Keep Firebase claim in sync with CADA_ADMIN_EMAILS allowlist.
     if (cadaAdmin && claims.cadaAdmin !== true) {
@@ -49,6 +54,7 @@ export async function POST(request: Request) {
     }
 
     if (cadaAdmin) {
+      await ensureCadaAdminOnLogin({ email, authUserId: signIn.localId });
       // Fresh idToken after claim update so the session cookie includes cadaAdmin.
       let idToken = signIn.idToken;
       if (claims.cadaAdmin !== true) {

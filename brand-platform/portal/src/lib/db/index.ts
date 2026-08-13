@@ -4,3 +4,4 @@ export * from "@/lib/db/challenges";
 export * from "@/lib/db/users";
 export * from "@/lib/db/rewards";
 export * from "@/lib/db/leads";
+export * from "@/lib/db/admins";

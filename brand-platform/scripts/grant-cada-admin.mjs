@@ -108,11 +108,30 @@ async function main() {
   await auth.setCustomUserClaims(user.uid, existing);
   console.log("Set custom claim: cadaAdmin=true");
 
+  const { getFirestore } = require("firebase-admin/firestore");
+  const db = getFirestore();
+  const existingAdmin = await db.collection("cada_admins").doc(email).get();
+  const now = new Date().toISOString();
+  const prev = existingAdmin.data() || {};
+  await db.collection("cada_admins").doc(email).set(
+    {
+      id: email,
+      email,
+      auth_user_id: user.uid,
+      granted_by: prev.granted_by || "grant-cada-admin.mjs",
+      granted_at: prev.disabled === false && prev.granted_at ? prev.granted_at : now,
+      disabled: false,
+      updated_at: now,
+    },
+    { merge: true }
+  );
+  console.log("Wrote Firestore cada_admins/" + email);
+
   console.log("");
   console.log("Next steps:");
-  console.log(`  1. Set CADA_ADMIN_EMAILS=${email} in portal env (Vercel + .env.local)`);
-  console.log("  2. Redeploy the portal if needed");
-  console.log("  3. Sign in at /login → you will land on /admin/challenges");
+  console.log("  1. Sign in at /login → you will land on /admin/challenges");
+  console.log("  2. Add more admins from /admin/users (no env redeploy needed)");
+  console.log(`  3. Optional bootstrap: set CADA_ADMIN_EMAILS=${email} in portal env`);
 }
 
 main().catch((err) => {

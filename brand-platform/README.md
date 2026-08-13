@@ -28,7 +28,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - Staff invites (`admin` | `scanner`) + accept flow
 - Protected routes + role-based UI
 - **Challenge CRUD** — create, submit for review, end sponsored habit campaigns (Phase 3)
-- **CADA challenge approval** — brands submit; internal admin queue approves before mobile visibility
+- **CADA challenge approval** — brands submit; internal admins at `/admin/challenges` approve before mobile visibility. Grant more admins at `/admin/users`.
 
 ### Phase 3 — Challenges
 
@@ -38,18 +38,21 @@ See [API reference](docs/api-phase3.md).
 /dashboard/challenges          List (all staff)
 /dashboard/challenges/new      Create draft (admin)
 /dashboard/challenges/:id/edit Manage / view
-/admin/challenges              CADA approval queue (admin login or token)
+/admin/challenges              CADA approval queue
+/admin/users                   Grant / revoke CADA admins
 ```
 
 Brand flow: **draft** → **Submit for review** → **pending_review** → CADA **approve** → **active** (visible in app).
 
-CADA platform admins (`james@cadaapp.com`, `tannermesaric@gmail.com`) sign in at `/login` and land on `/admin/challenges`. Set:
+CADA platform admins sign in at `/login` and land on `/admin/challenges`. Bootstrap emails:
 
 ```bash
 CADA_ADMIN_EMAILS=james@cadaapp.com,tannermesaric@gmail.com
 ```
 
-Create the Firebase Auth user + claim with:
+Add or revoke further admins in the portal at **`/admin/users`** (no redeploy). That writes Firestore `cada_admins` and the Firebase `cadaAdmin` claim.
+
+To create the first Firebase Auth user from a machine with the service account:
 
 ```bash
 cd brand-platform/portal && node ../scripts/grant-cada-admin.mjs james@cadaapp.com

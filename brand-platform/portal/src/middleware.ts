@@ -8,7 +8,6 @@ const PUBLIC_PATHS = [
   "/reset-password",
   "/invite",
   "/signup/business",
-  "/admin/leads",
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/forgot-password",
@@ -20,6 +19,7 @@ const PUBLIC_PATHS = [
   "/api/admin/leads",
   "/api/admin/challenges",
   "/api/admin/partners",
+  "/api/admin/users",
 ];
 
 function isPublic(pathname: string) {

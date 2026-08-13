@@ -1,13 +1,25 @@
 import { NextResponse } from "next/server";
 import { listLeads, updateLead } from "@/lib/db";
 import { handleApiError, jsonError } from "@/lib/api";
+import { requireCadaAdminAccess } from "@/lib/admin/auth";
 import { verifyLeadsAdminToken } from "@/lib/leads/admin-auth";
 import type { LeadStatus } from "@/lib/db/types";
 
+async function allowLeadsAdmin(request: Request) {
+  const access = await requireCadaAdminAccess(request);
+  if (access.ok) return { ok: true as const };
+  if (verifyLeadsAdminToken(request)) return { ok: true as const };
+  return { ok: false as const, status: access.status };
+}
+
 export async function GET(request: Request) {
   try {
-    if (!verifyLeadsAdminToken(request)) {
-      return jsonError("Unauthorized", 401);
+    const access = await allowLeadsAdmin(request);
+    if (!access.ok) {
+      return jsonError(
+        access.status === 403 ? "CADA admin access required" : "Unauthorized",
+        access.status
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -33,8 +45,12 @@ type PatchBody = {
 
 export async function PATCH(request: Request) {
   try {
-    if (!verifyLeadsAdminToken(request)) {
-      return jsonError("Unauthorized", 401);
+    const access = await allowLeadsAdmin(request);
+    if (!access.ok) {
+      return jsonError(
+        access.status === 403 ? "CADA admin access required" : "Unauthorized",
+        access.status
+      );
     }
 
     const body = (await request.json()) as PatchBody;

@@ -1,4 +1,6 @@
 import { getPortalSessionUser } from "@/lib/firebase/session";
+import { adminAuth } from "@/lib/firebase/admin";
+import { getCadaAdminByEmail } from "@/lib/db/admins";
 
 export type CadaAdminContext = {
   email: string;
@@ -8,7 +10,7 @@ export type CadaAdminContext = {
 
 const DEFAULT_CADA_ADMIN_EMAILS = "james@cadaapp.com,tannermesaric@gmail.com";
 
-function parseAdminEmails(): Set<string> {
+export function parseAdminEmails(): Set<string> {
   const raw = process.env.CADA_ADMIN_EMAILS?.trim() || DEFAULT_CADA_ADMIN_EMAILS;
   return new Set(
     raw
@@ -18,15 +20,48 @@ function parseAdminEmails(): Set<string> {
   );
 }
 
-/** True when email is listed in CADA_ADMIN_EMAILS or Firebase claim cadaAdmin is set. */
-export function isCadaAdminIdentity(
-  email: string | null | undefined,
-  claims?: Record<string, unknown> | null
-): boolean {
-  if (claims?.cadaAdmin === true) return true;
-  const normalized = email?.trim().toLowerCase();
-  if (!normalized) return false;
-  return parseAdminEmails().has(normalized);
+function claimsAreCadaAdmin(claims?: Record<string, unknown> | null): boolean {
+  return claims?.cadaAdmin === true;
+}
+
+/**
+ * Source of truth for CADA platform admins (challenge approval):
+ * 1. Firestore `cada_admins` row (disabled wins over env/claims)
+ * 2. CADA_ADMIN_EMAILS allowlist (bootstrap)
+ * 3. Live Firebase custom claim `cadaAdmin` (Admin SDK, not a stale session cookie)
+ */
+export async function isPlatformAdmin(params: {
+  email?: string | null;
+  uid?: string | null;
+  claims?: Record<string, unknown> | null;
+}): Promise<boolean> {
+  const email = params.email?.trim().toLowerCase() || null;
+
+  if (email) {
+    const row = await getCadaAdminByEmail(email);
+    if (row) return !row.disabled;
+    if (parseAdminEmails().has(email)) return true;
+  }
+
+  if (claimsAreCadaAdmin(params.claims)) return true;
+
+  if (params.uid) {
+    try {
+      const user = await adminAuth().getUser(params.uid);
+      if (user.customClaims?.cadaAdmin === true) {
+        const userEmail = user.email?.trim().toLowerCase();
+        if (userEmail) {
+          const row = await getCadaAdminByEmail(userEmail);
+          if (row) return !row.disabled;
+        }
+        return true;
+      }
+    } catch {
+      // Auth user may not exist yet.
+    }
+  }
+
+  return false;
 }
 
 /** Legacy shared-secret auth for scripts and email deep links. */
@@ -43,15 +78,18 @@ export function verifyCadaAdminToken(request: Request): boolean {
   return searchParams.get("token") === expected;
 }
 
-/** Session-based CADA platform admin (login as james@cadaapp.com, etc.). */
+/** Session-based CADA platform admin (login as a granted admin email). */
 export async function getCadaAdminFromSession(): Promise<CadaAdminContext | null> {
   const user = await getPortalSessionUser();
   if (!user) return null;
 
   const email = user.email?.trim().toLowerCase() ?? null;
-  if (!isCadaAdminIdentity(email, user as Record<string, unknown>)) {
-    return null;
-  }
+  const allowed = await isPlatformAdmin({
+    email,
+    uid: user.uid,
+    claims: user as unknown as Record<string, unknown>,
+  });
+  if (!allowed) return null;
 
   return {
     email: email ?? user.uid,
@@ -72,7 +110,12 @@ export async function requireCadaAdminAccess(request: Request): Promise<CadaAdmi
   const user = await getPortalSessionUser();
   if (user) {
     const email = user.email?.trim().toLowerCase() ?? null;
-    if (isCadaAdminIdentity(email, user as Record<string, unknown>)) {
+    const allowed = await isPlatformAdmin({
+      email,
+      uid: user.uid,
+      claims: user as unknown as Record<string, unknown>,
+    });
+    if (allowed) {
       return {
         ok: true,
         admin: {

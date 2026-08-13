@@ -80,14 +80,14 @@ Add authorized domains in Firebase Auth → Settings → Authorized domains (e.g
 |----------|---------|
 | `brand_staff` | Partner portal login (brand dashboard) |
 | `cada_users` | CADA iOS app users |
-| `CADA_ADMIN_EMAILS` / claim `cadaAdmin` | Platform admins — approve challenges at `/admin/challenges` |
+| `CADA_ADMIN_EMAILS` / Firestore `cada_admins` / claim `cadaAdmin` | Platform admins — approve challenges at `/admin/challenges`; manage the roster at `/admin/users` |
 
 Portal sessions use the `__portal_session` HTTP-only cookie. Custom claims (`portalStaff`, `brandId`, `staffRole`, optional `cadaAdmin`) are set on Firebase Auth users.
 
 ### Grant a CADA admin (e.g. james@cadaapp.com)
 
-1. Set `CADA_ADMIN_EMAILS=james@cadaapp.com,tannermesaric@gmail.com` in `.env.local` and Vercel.
-2. Create/update each Firebase Auth user and claim:
+1. Set `CADA_ADMIN_EMAILS=james@cadaapp.com,tannermesaric@gmail.com` in `.env.local` and Vercel (bootstrap only).
+2. Create/update each Firebase Auth user, claim, and Firestore roster row:
 
 ```bash
 cd brand-platform/portal
@@ -97,6 +97,7 @@ node ../scripts/grant-cada-admin.mjs tannermesaric@gmail.com
 ```
 
 3. Sign in at `/login` → redirects to `/admin/challenges` with the pending queue.
+4. Add more admins from **`/admin/users`** (email + grant). They receive a sign-in email and can approve/reject challenges. No env change or redeploy.
 
 `CADA_ADMIN_TOKEN` remains optional for scripts and automation.
 

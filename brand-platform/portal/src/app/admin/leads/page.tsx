@@ -14,35 +14,57 @@ type Lead = {
 
 function AdminLeadsInner() {
   const searchParams = useSearchParams();
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fromUrl = searchParams.get("token");
-    const stored = typeof window !== "undefined" ? sessionStorage.getItem("leads_admin_token") : null;
+    const stored =
+      typeof window !== "undefined" ? sessionStorage.getItem("leads_admin_token") : null;
     const t = fromUrl || stored || "";
     if (fromUrl) sessionStorage.setItem("leads_admin_token", fromUrl);
-    setToken(t);
+    setToken(t || null);
+    setAuthReady(true);
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!token) return;
+  function leadsUrl() {
+    if (!token) return "/api/admin/leads";
+    return `/api/admin/leads?token=${encodeURIComponent(token)}`;
+  }
+
+  function loadLeads() {
+    if (!authReady) return;
     setLoading(true);
-    fetch(`/api/admin/leads?token=${encodeURIComponent(token)}`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.error) setError(json.error);
-        else setLeads(json.leads || []);
+    setError("");
+    fetch(leadsUrl(), { credentials: "include" })
+      .then(async (r) => {
+        const json = await r.json().catch(() => ({}));
+        if (r.status === 401) {
+          window.location.assign(`/login?next=${encodeURIComponent("/admin/leads")}`);
+          return;
+        }
+        if (!r.ok || json.error) {
+          setError(json.error || "Failed to load leads");
+          return;
+        }
+        setLeads(json.leads || []);
       })
       .catch(() => setError("Failed to load leads"))
       .finally(() => setLoading(false));
-  }, [token]);
+  }
+
+  useEffect(() => {
+    loadLeads();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authReady, token]);
 
   async function updateStatus(id: string, status: string) {
-    const res = await fetch(`/api/admin/leads?token=${encodeURIComponent(token)}`, {
+    const res = await fetch(leadsUrl(), {
       method: "PATCH",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, status }),
     });
@@ -52,27 +74,20 @@ function AdminLeadsInner() {
     }
   }
 
-  if (!token) {
-    return (
-      <div className="portal-main">
-        <div className="card max-w-md">
-          <h1 className="font-display text-2xl font-extrabold text-ink">Partnership leads</h1>
-          <p className="mt-2 text-sm font-medium text-ink-light">
-            Internal view. Open with <code className="text-xs">?token=YOUR_LEADS_ADMIN_TOKEN</code>{" "}
-            or set <code className="text-xs">LEADS_ADMIN_TOKEN</code> in portal env.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="portal-main">
       <p className="font-display text-xs font-extrabold uppercase tracking-wide text-teal">Admin</p>
       <h1 className="font-display text-3xl font-extrabold text-ink">Partnership leads</h1>
       <p className="mt-1 font-medium text-ink-light">{leads.length} lead(s)</p>
 
-      {error && <div className="alert-error mt-4">{error}</div>}
+      {error && (
+        <div className="alert-error mt-4">
+          {error}
+          <button type="button" className="ml-3 underline" onClick={loadLeads}>
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className="table-shell mt-6">
         {loading ? (
