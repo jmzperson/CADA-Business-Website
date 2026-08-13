@@ -1,0 +1,611 @@
+# Paste this entire prompt into Cursor on the Mac (Swift / CADA iOS repo)
+
+---
+
+## Prompt (copy everything below this line)
+
+```
+You are working in the CADA iOS (Swift) app repo.
+
+## Goal
+Wire **brand-sponsored challenges** so that when a CADA admin approves a challenge on the Partners web console (status becomes `active` in Firestore), CADA app users can **see it and optionally Join** in the iOS app.
+
+This is NOT the same as user-created personal/group challenges (those already go into `users/{uid}/personal_incomplete` with no approval). Do **NOT** write brand challenges into `personal_incomplete` for discovery. Brand challenges are discovered via the Partners mobile API; join creates an enrollment.
+
+## Backend context (already done — do not reimplement)
+- Firebase project: `cada-4ed7c` (shared by iOS + Partners web)
+- Brand creates challenge on Partners → status `pending_review`
+- CADA admin approves → status `active` + `published_at`
+- Available challenges API lists only `active` challenges that are joinable
+- There is already at least one live active challenge: “Run for CADA” (`habit_type: run`)
+
+## What to build in iOS (MVP first)
+
+### MVP (must ship)
+1. Add networking client (file below) into the app’s networking module.
+2. Auth: every request uses `Authorization: Bearer <Firebase ID token>` for the **signed-in CADA app user** (same Firebase Auth the app already uses). Brand portal staff tokens will NOT work.
+3. Base URL: use the Partners portal host + `/api/v1`.
+   - Prefer production: `https://partners.cadaapp.com/api/v1` (or whatever `NEXT_PUBLIC_APP_URL` / deployed Partners URL is, with `/api/v1`).
+   - Docs also mention `https://api.cada.app/v1` if that custom domain is configured — verify which host actually serves `/api/v1/challenges/available` and use that.
+   - Local portal: `http://localhost:3000/api/v1` (simulator only).
+4. UI: add a **Brand Challenges** section/tab (or clear surface on Home):
+   - On appear (and pull-to-refresh): `GET /challenges/available`
+   - Show cards: brand name, logo (`brand.logo_url`), title, `offer_headline`, `habit_type`, optional `offer_code`
+   - Empty state: “No brand offers yet”
+   - Tap → detail with `description` + **Join challenge** CTA
+5. Join: `POST /challenges/{id}/enroll` with empty JSON body `{}`
+   - 201 → success, store `enrollment_id`
+   - 200 + `already_enrolled: true` → treat as success (“Already joined”)
+   - 410 → “This offer is no longer available”
+   - 404 → “Offer not found”
+   - 401 → refresh Firebase ID token and retry once
+6. Optional but recommended in MVP: `GET /users/me/challenges` for a “My brand challenges” list / enrolled state on cards.
+
+### Phase 2 (after discover + join work)
+Do not block MVP on this, but leave hooks:
+- After existing habit knock-out is saved, call `POST /events/habit-completed` with:
+  - `habit_type` (must match challenge, e.g. `run`)
+  - `completed_at` ISO8601
+  - `source_event_id` = stable knock-out/crush ID (idempotent)
+  - optional `challenge_id` if multiple enrollments share habit type
+- If `attributed: true` and `reward` present → show QR reward screen encoding `qr_url` only (no PII)
+- Re-open: `GET /users/me/rewards/{id}`
+
+## API contracts
+
+### Discover
+GET {baseURL}/challenges/available
+Authorization: Bearer <firebase_id_token>
+
+Response 200:
+{
+  "challenges": [{
+    "id": "uuid",
+    "title": "string",
+    "description": "string",
+    "habit_type": "run",
+    "offer_headline": "string",
+    "offer_code": "string|null",
+    "starts_at": "ISO8601",
+    "ends_at": "ISO8601|null",
+    "spots_remaining": null,
+    "brand": {
+      "id": "uuid",
+      "name": "string",
+      "slug": "string",
+      "logo_url": "string|null",
+      "category": "string"
+    }
+  }],
+  "meta": { "region": "all", "count": 1 }
+}
+
+### Enroll
+POST {baseURL}/challenges/{challenge_id}/enroll
+Authorization: Bearer <firebase_id_token>
+Content-Type: application/json
+
+{}
+
+Success 201:
+{
+  "enrollment_id": "uuid",
+  "challenge_id": "uuid",
+  "status": "active",
+  "enrolled_at": "ISO8601"
+}
+
+Already enrolled 200:
+{
+  "enrollment_id": "uuid",
+  "challenge_id": "uuid",
+  "status": "active",
+  "enrolled_at": "ISO8601",
+  "already_enrolled": true
+}
+
+### My enrollments
+GET {baseURL}/users/me/challenges
+Authorization: Bearer <firebase_id_token>
+
+### Habit completed (phase 2)
+POST {baseURL}/events/habit-completed
+{
+  "habit_type": "run",
+  "completed_at": "ISO8601",
+  "source_event_id": "stable-knockout-id",
+  "challenge_id": "optional-uuid"
+}
+
+## Constraints / do NOT
+- Do NOT auto-add brand challenges into `personal_incomplete` for all users or for brand “creators”.
+- Do NOT confuse Partners brand staff accounts with CADA app `users` documents.
+- Do NOT break existing personal/group challenge creation flows.
+- Match existing app architecture, navigation, and design system (SwiftUI/UIKit as already used).
+- Prefer integrating the provided client; adapt tokenProvider to your existing Firebase Auth session (`user.getIDToken()`).
+
+## Acceptance test
+1. Sign into the iOS app as a normal CADA user.
+2. Open Brand Challenges → should list approved/active challenges (e.g. “Run for CADA”).
+3. Tap Join → enrollment succeeds; shows as joined / appears in My brand challenges.
+4. A pending_review challenge must NOT appear.
+5. Personal habits/challenges creation still works unchanged.
+
+## Implementation order
+1. Add `CADABrandPartnershipsClient.swift` (full source below) to the project.
+2. Wire `tokenProvider` to Firebase Auth ID token.
+3. Configure baseURL for Debug/Release.
+4. Build Brand Challenges list + detail + Join UI.
+5. Wire My Challenges / enrolled state.
+6. (Later) habit-completed + QR reward screen.
+
+---
+
+## Full reference client — create this file in the iOS repo
+
+File name: CADABrandPartnershipsClient.swift
+
+```swift
+// CADABrandPartnershipsClient.swift
+//
+// CADA Brand Partnerships — iOS API client (reference implementation)
+// Copy into your networking module or adapt to your existing HTTP stack.
+//
+// Requires: iOS 15+ (async/await). No third-party dependencies.
+
+import Foundation
+
+// MARK: - Models
+
+public enum HabitType: String, Codable, CaseIterable, Sendable {
+    // Body
+    case exercise
+    case run
+    case gym
+    case walk
+    case stretch
+    case sleep_8hrs
+    case nap
+    // Connection
+    case call_family
+    case text_friend
+    case quality_time
+    case do_something_kind
+    // Presence
+    case meditate
+    case no_phone_morning
+    case hike
+    case gratitude
+    case one_hard_thing
+    // Mind & Growth
+    case read
+    case journal
+    case write
+    case draw
+    case create_something
+    case study
+    case practice_guitar
+    case practice_language
+    // Custom / legacy
+    case custom
+}
+
+public enum EnrollmentStatus: String, Codable, Sendable {
+    case active
+    case completed
+    case dropped
+}
+
+public enum RewardStatus: String, Codable, Sendable {
+    case issued
+    case redeemed
+    case expired
+    case revoked
+}
+
+public struct BrandSummary: Codable, Sendable, Equatable {
+    public let id: String
+    public let name: String
+    public let slug: String?
+    public let logoURL: String?
+    public let category: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, slug, category
+        case logoURL = "logo_url"
+    }
+}
+
+public struct AvailableChallenge: Codable, Sendable, Identifiable, Equatable {
+    public let id: String
+    public let title: String
+    public let description: String
+    public let habitType: HabitType
+    public let offerHeadline: String
+    public let offerCode: String?
+    public let startsAt: Date
+    public let endsAt: Date?
+    public let brand: BrandSummary
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, description, brand
+        case habitType = "habit_type"
+        case offerHeadline = "offer_headline"
+        case offerCode = "offer_code"
+        case startsAt = "starts_at"
+        case endsAt = "ends_at"
+    }
+}
+
+public struct AvailableChallengesResponse: Codable, Sendable {
+    public let challenges: [AvailableChallenge]
+    public let meta: Meta
+
+    public struct Meta: Codable, Sendable {
+        public let region: String
+        public let count: Int
+    }
+}
+
+public struct EnrollmentResponse: Codable, Sendable {
+    public let enrollmentID: String
+    public let challengeID: String
+    public let status: EnrollmentStatus
+    public let enrolledAt: Date
+    public let alreadyEnrolled: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case status
+        case enrollmentID = "enrollment_id"
+        case challengeID = "challenge_id"
+        case enrolledAt = "enrolled_at"
+        case alreadyEnrolled = "already_enrolled"
+    }
+}
+
+public struct MyChallengeEnrollment: Codable, Sendable, Identifiable {
+    public var id: String { enrollmentID }
+
+    public let enrollmentID: String
+    public let challengeID: String
+    public let status: EnrollmentStatus
+    public let enrolledAt: Date
+    public let completedAt: Date?
+    public let completionCount: Int
+    public let challenge: ChallengeInfo
+    public let brand: BrandInfo
+    public let progress: Progress
+    public let reward: RewardInfo
+
+    public struct ChallengeInfo: Codable, Sendable {
+        public let title: String
+        public let habitType: HabitType
+        public let offerHeadline: String
+        public let offerCode: String?
+        public let status: String
+
+        enum CodingKeys: String, CodingKey {
+            case title, status
+            case habitType = "habit_type"
+            case offerHeadline = "offer_headline"
+            case offerCode = "offer_code"
+        }
+    }
+
+    public struct BrandInfo: Codable, Sendable {
+        public let id: String
+        public let name: String
+        public let logoURL: String?
+
+        enum CodingKeys: String, CodingKey {
+            case id, name
+            case logoURL = "logo_url"
+        }
+    }
+
+    public struct Progress: Codable, Sendable {
+        public let rule: String
+        public let required: Int
+        public let current: Int
+        public let completed: Bool
+    }
+
+    public struct RewardInfo: Codable, Sendable {
+        public let issued: Bool
+        public let rewardID: String?
+
+        enum CodingKeys: String, CodingKey {
+            case issued
+            case rewardID = "reward_id"
+        }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case status, challenge, brand, progress, reward
+        case enrollmentID = "enrollment_id"
+        case challengeID = "challenge_id"
+        case enrolledAt = "enrolled_at"
+        case completedAt = "completed_at"
+        case completionCount = "completion_count"
+    }
+}
+
+public struct MyChallengesResponse: Codable, Sendable {
+    public let enrollments: [MyChallengeEnrollment]
+}
+
+public struct HabitCompletedRequest: Encodable, Sendable {
+    public let habitType: HabitType
+    public let completedAt: Date
+    public let sourceEventID: String
+    public let challengeID: String?
+
+    public init(
+        habitType: HabitType,
+        completedAt: Date,
+        sourceEventID: String,
+        challengeID: String? = nil
+    ) {
+        self.habitType = habitType
+        self.completedAt = completedAt
+        self.sourceEventID = sourceEventID
+        self.challengeID = challengeID
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case habitType = "habit_type"
+        case completedAt = "completed_at"
+        case sourceEventID = "source_event_id"
+        case challengeID = "challenge_id"
+    }
+}
+
+public struct IssuedRewardSummary: Codable, Sendable {
+    public let id: String
+    public let enrollmentID: String
+    public let qrURL: String
+    public let expiresAt: Date
+    public let status: RewardStatus
+
+    enum CodingKeys: String, CodingKey {
+        case id, status
+        case enrollmentID = "enrollment_id"
+        case qrURL = "qr_url"
+        case expiresAt = "expires_at"
+    }
+}
+
+public struct HabitCompletedResponse: Codable, Sendable {
+    public let attributed: Bool
+    public let reason: String?
+    public let idempotentReplay: Bool?
+    public let enrollmentID: String?
+    public let enrollmentStatus: EnrollmentStatus?
+    public let completionCount: Int?
+    public let reward: IssuedRewardSummary?
+
+    enum CodingKeys: String, CodingKey {
+        case attributed, reason, reward
+        case idempotentReplay = "idempotent_replay"
+        case enrollmentID = "enrollment_id"
+        case enrollmentStatus = "enrollment_status"
+        case completionCount = "completion_count"
+    }
+}
+
+public struct RewardDetail: Codable, Sendable, Identifiable {
+    public let id: String
+    public let enrollmentID: String
+    public let brandID: String
+    public let challengeID: String
+    public let status: RewardStatus
+    public let issuedAt: Date
+    public let expiresAt: Date
+    public let qrURL: String?
+    public let qrPayload: String?
+    public let brandName: String
+    public let challengeTitle: String
+    public let offerHeadline: String
+    public let offerCode: String?
+
+    public var displayQRPayload: String? { qrURL ?? qrPayload }
+
+    public var isRedeemable: Bool {
+        status == .issued && displayQRPayload != nil && expiresAt > Date()
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, status
+        case enrollmentID = "enrollment_id"
+        case brandID = "brand_id"
+        case challengeID = "challenge_id"
+        case issuedAt = "issued_at"
+        case expiresAt = "expires_at"
+        case qrURL = "qr_url"
+        case qrPayload = "qr_payload"
+        case brandName = "brand_name"
+        case challengeTitle = "challenge_title"
+        case offerHeadline = "offer_headline"
+        case offerCode = "offer_code"
+    }
+}
+
+// MARK: - Errors
+
+public enum BrandPartnershipsError: Error, Sendable, LocalizedError {
+    case unauthorized
+    case notFound
+    case challengeUnavailable
+    case conflict(String)
+    case rateLimited
+    case notAttributed(reason: String)
+    case serverError(statusCode: Int, message: String)
+    case decodingFailed(Error)
+    case network(Error)
+
+    public var errorDescription: String? {
+        switch self {
+        case .unauthorized: return "Session expired. Please sign in again."
+        case .notFound: return "Resource not found."
+        case .challengeUnavailable: return "This offer is no longer available."
+        case .conflict(let msg): return msg
+        case .rateLimited: return "Too many requests. Try again shortly."
+        case .notAttributed(let reason): return "Not attributed: \(reason)"
+        case .serverError(_, let message): return message
+        case .decodingFailed: return "Unexpected server response."
+        case .network(let err): return err.localizedDescription
+        }
+    }
+}
+
+// MARK: - Protocol
+
+public protocol BrandPartnershipsAPI: Sendable {
+    func fetchAvailableChallenges() async throws -> AvailableChallengesResponse
+    func enroll(challengeID: String) async throws -> EnrollmentResponse
+    func fetchMyChallenges() async throws -> MyChallengesResponse
+    func reportHabitCompleted(_ request: HabitCompletedRequest) async throws -> HabitCompletedResponse
+    func fetchReward(rewardID: String) async throws -> RewardDetail
+}
+
+// MARK: - URLSession implementation
+
+public final class URLSessionBrandPartnershipsClient: BrandPartnershipsAPI, @unchecked Sendable {
+    private let baseURL: URL
+    private let session: URLSession
+    private let tokenProvider: @Sendable () async throws -> String
+    private let decoder: JSONDecoder
+    private let encoder: JSONEncoder
+
+    /// - Parameters:
+    ///   - baseURL: e.g. URL to Partners `/api/v1`
+    ///   - tokenProvider: Returns Firebase ID token for the signed-in CADA app user
+    public init(
+        baseURL: URL,
+        session: URLSession = .shared,
+        tokenProvider: @escaping @Sendable () async throws -> String
+    ) {
+        self.baseURL = baseURL
+        self.session = session
+        self.tokenProvider = tokenProvider
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let raw = try container.decode(String.self)
+            if let date = ISO8601DateFormatter.fractional.date(from: raw)
+                ?? ISO8601DateFormatter().date(from: raw) {
+                return date
+            }
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Invalid ISO8601 date: \(raw)"
+            )
+        }
+        self.decoder = decoder
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .custom { date, encoder in
+            var container = encoder.singleValueContainer()
+            try container.encode(ISO8601DateFormatter.fractional.string(from: date))
+        }
+        self.encoder = encoder
+    }
+
+    public func fetchAvailableChallenges() async throws -> AvailableChallengesResponse {
+        try await get(path: "challenges/available")
+    }
+
+    public func enroll(challengeID: String) async throws -> EnrollmentResponse {
+        try await post(path: "challenges/\(challengeID)/enroll", body: EmptyBody())
+    }
+
+    public func fetchMyChallenges() async throws -> MyChallengesResponse {
+        try await get(path: "users/me/challenges")
+    }
+
+    public func reportHabitCompleted(_ request: HabitCompletedRequest) async throws -> HabitCompletedResponse {
+        try await post(path: "events/habit-completed", body: request)
+    }
+
+    public func fetchReward(rewardID: String) async throws -> RewardDetail {
+        try await get(path: "users/me/rewards/\(rewardID)")
+    }
+
+    private struct EmptyBody: Encodable {}
+    private struct APIErrorBody: Decodable { let error: String? }
+
+    private func get<T: Decodable>(path: String) async throws -> T {
+        try await request(method: "GET", path: path, body: Optional<Data>.none)
+    }
+
+    private func post<Body: Encodable, T: Decodable>(path: String, body: Body) async throws -> T {
+        let data = try encoder.encode(body)
+        return try await request(method: "POST", path: path, body: data)
+    }
+
+    private func request<T: Decodable>(
+        method: String,
+        path: String,
+        body: Data?
+    ) async throws -> T {
+        let token = try await tokenProvider()
+        var url = baseURL
+        for component in path.split(separator: "/") {
+            url = url.appendingPathComponent(String(component))
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw BrandPartnershipsError.network(error)
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw BrandPartnershipsError.serverError(statusCode: -1, message: "Invalid response")
+        }
+
+        if (200 ... 299).contains(http.statusCode) {
+            do {
+                return try decoder.decode(T.self, from: data)
+            } catch {
+                throw BrandPartnershipsError.decodingFailed(error)
+            }
+        }
+
+        let message = (try? decoder.decode(APIErrorBody.self, from: data)).flatMap(\.error)
+            ?? HTTPURLResponse.localizedString(forStatusCode: http.statusCode)
+
+        switch http.statusCode {
+        case 401: throw BrandPartnershipsError.unauthorized
+        case 404: throw BrandPartnershipsError.notFound
+        case 409: throw BrandPartnershipsError.conflict(message)
+        case 410: throw BrandPartnershipsError.challengeUnavailable
+        case 429: throw BrandPartnershipsError.rateLimited
+        default: throw BrandPartnershipsError.serverError(statusCode: http.statusCode, message: message)
+        }
+    }
+}
+
+private extension ISO8601DateFormatter {
+    static let fractional: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+}
+```
+
+Start by exploring the existing navigation and Firebase Auth token helpers, then implement MVP discover + join matching the app’s UI patterns. Ask before large refactors outside this feature.
+```

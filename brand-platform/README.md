@@ -1,62 +1,78 @@
 # CADA Brand Platform
 
-PostgreSQL schema + RLS (Phase 1) and Next.js brand portal (Phase 2).
+Partner portal + mobile API for **brand-sponsored challenges**. Brands create campaigns in the web portal; CADA admins approve them; the **Swift iOS CADA app** discovers, enrolls, and completes them over the shared Firebase backend.
 
-## Phase 2 — Brand portal (Firebase)
+## How it connects to the iOS app
+
+This repo and the Swift iOS app share Firebase project **`cada-4ed7c`** (same Auth + Firestore).
+
+| Surface | Who | Identity in Firestore |
+|---------|-----|------------------------|
+| **Swift iOS app** | End users (habits, feed, brand challenges) | `users/{uid}` (+ partnership `cada_users` auto-provisioned on first mobile API call) |
+| **Partners portal** | Brand staff | `brand_staff` / `brands` |
+| **Admin queue** | CADA platform admins | Email allowlist (`CADA_ADMIN_EMAILS`) + optional `cadaAdmin` claim |
+
+**Flow**
+
+```text
+Brand creates challenge (portal)
+  → Submit for review → pending_review
+  → CADA admin approves at /admin/challenges → active
+  → iOS calls GET /api/v1/challenges/available
+  → User joins via POST /api/v1/challenges/:id/enroll
+  → Habit knock-out → POST /api/v1/events/habit-completed → QR reward
+```
+
+Personal/group challenges users create **inside the iOS app** are separate (e.g. `users/{uid}/personal_incomplete`). Brand challenges do **not** auto-write into that collection; the app must use the mobile API.
+
+**iOS integration (start here):** [docs/ios-integration-package.md](docs/ios-integration-package.md) · Swift client: [docs/ios/CADABrandPartnershipsClient.swift](docs/ios/CADABrandPartnershipsClient.swift) · Mac paste prompt: [docs/ios/MAC-CURSOR-PROMPT.md](docs/ios/MAC-CURSOR-PROMPT.md)
+
+## Production
+
+| Item | Value |
+|------|--------|
+| Portal | https://the-cada-portal.vercel.app |
+| Mobile API base | `https://the-cada-portal.vercel.app/api/v1` |
+| Firebase project | `cada-4ed7c` |
+| Vercel root | `brand-platform/portal` |
+
+Set `NEXT_PUBLIC_APP_URL=https://the-cada-portal.vercel.app`. Add that host under Firebase Auth → Authorized domains (password reset / action links).
+
+## Local portal
 
 ```bash
 cd brand-platform/portal
-cp .env.example .env.local   # Firebase keys + service account
+cp .env.example .env.local   # Firebase web config + FIREBASE_SERVICE_ACCOUNT_JSON
 npm install
 npm run dev
 ```
 
-**Backend:** Firebase Auth + Firestore + Storage (project `cada-4ed7c`). See [Firebase portal setup](portal/docs/firebase-portal-setup.md) · [Vercel deploy checklist](portal/docs/vercel-deploy-checklist.md).
-
-Portal staff sign-in is **separate** from CADA app users (`brand_staff` vs `cada_users` collections).
-
 Open [http://localhost:3000](http://localhost:3000).
 
-**Docs:** [API reference](docs/api-phase2.md) · [Mobile API (Phase 4)](docs/api-mobile-phase4.md) · [**iOS Integration Package**](docs/ios-integration-package.md) · [Schema ERD](docs/schema-erd.md) · [RLS tests](docs/rls-test-cases.md)
+Setup: [Firebase portal setup](portal/docs/firebase-portal-setup.md) · [Vercel deploy checklist](portal/docs/vercel-deploy-checklist.md)
 
-### Phase 2 features
+## Who does what
 
-- Brand signup (name, email, password, category, website, logo)
-- Email verification gate before dashboard
-- Login / logout / password reset
-- Brand profile edit (admin)
-- Staff invites (`admin` | `scanner`) + accept flow
-- Protected routes + role-based UI
-- **Challenge CRUD** — create, submit for review, end sponsored habit campaigns (Phase 3)
-- **CADA challenge approval** — brands submit; internal admin queue approves before mobile visibility
+### Brand partners (`/dashboard`)
 
-### Phase 3 — Challenges
+- Sign up / login / password reset
+- Brand profile, staff invites (`admin` | `scanner`)
+- Challenge CRUD: draft → **Submit for review** → wait for approval → end campaigns
+- Metrics, redemptions log, web QR scanner (`/scan`)
 
-See [API reference](docs/api-phase3.md).
+### CADA admins (`/admin/challenges`)
 
-```text
-/dashboard/challenges          List (all staff)
-/dashboard/challenges/new      Create draft (admin)
-/dashboard/challenges/:id/edit Manage / view
-/admin/challenges              CADA approval queue (admin login or token)
-```
+Approve or reject `pending_review` challenges before they appear in the iOS app.
 
-Brand flow: **draft** → **Submit for review** → **pending_review** → CADA **approve** → **active** (visible in app).
-
-CADA platform admins (`james@cadaapp.com`, `tannermesaric@gmail.com`) sign in at `/login` and land on `/admin/challenges`. Set:
+Default allowlist (override with env):
 
 ```bash
 CADA_ADMIN_EMAILS=james@cadaapp.com,tannermesaric@gmail.com
 ```
 
-Create the Firebase Auth user + claim with:
+Admins sign in at `/login` and land on `/admin/challenges`.
 
-```bash
-cd brand-platform/portal && node ../scripts/grant-cada-admin.mjs james@cadaapp.com
-cd brand-platform/portal && node ../scripts/grant-cada-admin.mjs tannermesaric@gmail.com
-```
-
-On submit for review, Resend emails `james@cadaapp.com` with challenge details and an admin review link. Portal env:
+Optional notify on submit:
 
 ```bash
 CHALLENGE_NOTIFY_EMAIL=james@cadaapp.com
@@ -64,131 +80,50 @@ RESEND_API_KEY=re_...
 RESEND_FROM=CADA Partners <notifications@cadaapp.com>
 ```
 
-Verify `cadaapp.com` in [Resend](https://resend.com) before production. See `scripts/setup-production.sh` for full checklist.
+### iOS app users (mobile API)
 
-### Phase 4 — Mobile API (iOS)
-
-See [Mobile API docs](docs/api-mobile-phase4.md), [**iOS Integration Package**](docs/ios-integration-package.md) (start here for Swift), and [OpenAPI spec](docs/openapi-mobile-v1.yaml).
-
-```bash
-export APP_JWT="<cada-app-user-access-token>"
-./scripts/test-mobile-api.sh
-```
+Auth: `Authorization: Bearer <Firebase ID token>` from the signed-in CADA app user (not brand staff tokens).
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /api/v1/challenges/available` | Discover active challenges |
-| `POST /api/v1/challenges/:id/enroll` | Join challenge |
-| `GET /api/v1/users/me/challenges` | My progress |
-| `POST /api/v1/events/habit-completed` | Attribute habit knock-out |
+| `GET /api/v1/challenges/available` | Active brand challenges to join |
+| `POST /api/v1/challenges/:id/enroll` | Join |
+| `GET /api/v1/users/me/challenges` | Enrollment progress |
+| `POST /api/v1/events/habit-completed` | Attribute knock-out → issue QR |
+| `GET /api/v1/users/me/rewards/:id` | Reward + QR payload |
 
-### Phase 5 — QR rewards
+More: [Mobile API](docs/api-mobile-phase4.md) · [OpenAPI](docs/openapi-mobile-v1.yaml) · [QR guide](docs/qr-integration-guide-ios.md)
 
-See [iOS QR Integration Guide](docs/qr-integration-guide-ios.md).
+## Portal routes
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /api/v1/users/me/rewards/:id` | Reward + QR URL for display |
-| `POST /api/v1/redeem` | Staff redeem (validation) |
-| `POST /api/v1/cron/expire-rewards` | Mark expired rewards (cron) |
-
-### Phase 6 — Web scanner & redeem
-
-See [Scanner API](docs/api-phase6-scanner.md).
-
-| Route | Purpose |
-|-------|---------|
-| `POST /api/redeem` | Staff redeem token |
-| `GET /r/{token}` | QR URL landing — auto-redeem after staff login |
-| `/scan` | Web QR scanner (camera + manual) |
-
-```bash
-./scripts/test-redeem-phase6.sh   # wrong_brand isolation
+```text
+/dashboard                     Brand home + metrics
+/dashboard/challenges          List challenges
+/dashboard/challenges/new      Create draft
+/dashboard/challenges/:id/edit Manage / submit for review
+/dashboard/redemptions         Redemptions log
+/dashboard/staff               Staff invites
+/scan                          Web QR scanner
+/admin/challenges              CADA approval queue
 ```
 
-### Phase 7 — Dashboard metrics
+Challenge status: **draft** → **pending_review** → **active** (live for iOS) → **ended**.
 
-See [Metrics API](docs/api-phase7-metrics.md).
+## Docs index
 
-| Route | Purpose |
-|-------|---------|
-| `/dashboard` | KPI cards + funnel |
-| `/dashboard/challenges/:id` | Per-challenge metrics |
-| `/dashboard/redemptions` | Redemptions log |
-| `GET /api/brands/metrics` | Brand-wide aggregates |
-| `GET /api/brands/redemptions` | Paginated redemption rows |
+| Doc | Purpose |
+|-----|---------|
+| [ios-integration-package.md](docs/ios-integration-package.md) | Swift team integration guide |
+| [CADABrandPartnershipsClient.swift](docs/ios/CADABrandPartnershipsClient.swift) | Reference API client |
+| [api-mobile-phase4.md](docs/api-mobile-phase4.md) | Mobile REST details |
+| [api-phase3.md](docs/api-phase3.md) | Brand challenge APIs |
+| [qr-integration-guide-ios.md](docs/qr-integration-guide-ios.md) | QR display + redeem |
+| [api-phase6-scanner.md](docs/api-phase6-scanner.md) | Staff scanner |
+| [api-phase7-metrics.md](docs/api-phase7-metrics.md) | Dashboard metrics |
+| [api-phase8-bridge.md](docs/api-phase8-bridge.md) | Marketing site → leads |
+| [firebase-portal-setup.md](portal/docs/firebase-portal-setup.md) | Firebase + portal env |
+| [vercel-deploy-checklist.md](portal/docs/vercel-deploy-checklist.md) | Deploy |
 
-```bash
-STAFF_JWT_BRAND_A=... STAFF_JWT_BRAND_B=... ./scripts/test-metrics-phase7.sh
-```
+## Legacy note (Supabase / SQL)
 
-### Phase 8 — Marketing site bridge
-
-See [Bridge docs](docs/api-phase8-bridge.md).
-
-| Item | Purpose |
-|------|---------|
-| `cada_partnerships_page/code.html` | CTAs → portal signup; contact form → `/api/leads` |
-| `POST /api/leads` | Lead capture (company, email, message) |
-| `/admin/leads` | Internal lead list (token-protected) |
-| `/dashboard` onboarding | Profile → challenge → publish checklist |
-
-Set `window.CADA_PARTNERS_URL` on the marketing page and `MARKETING_SITE_ORIGINS` + `LEADS_ADMIN_TOKEN` + `CADA_ADMIN_TOKEN` in portal env.
-
-## Phase 1 — Database
-
-### Why SQL migrations (not Prisma/Drizzle alone)
-
-The architecture targets **Supabase PostgreSQL with Row Level Security**. RLS policies, helper functions, and enum types are **native SQL** — they do not generate cleanly from Prisma/Drizzle alone and are awkward to maintain as application-level-only checks.
-
-**Approach:**
-- **Source of truth:** `supabase/migrations/*.sql`
-- **Optional later:** Drizzle schema generated from or kept in sync with SQL for the Next.js API layer (Phase 2+)
-
-## Quick start (local)
-
-Requires [Docker](https://docs.docker.com/get-docker/).
-
-```bash
-cd brand-platform
-docker compose up -d
-./scripts/migrate.sh
-./scripts/seed.sh
-```
-
-Connect: `postgresql://postgres:postgres@localhost:54322/postgres`
-
-## Supabase (production)
-
-```bash
-supabase link --project-ref <your-ref>
-supabase db push
-psql $DATABASE_URL -f supabase/seed.sql   # dev/staging only
-```
-
-## Files
-
-| Path | Purpose |
-|------|---------|
-| `supabase/migrations/20260626100001_init_schema.sql` | Tables, enums, indexes |
-| `supabase/migrations/20260626100002_rls_policies.sql` | RLS + helper functions |
-| `supabase/seed.sql` | Dev seed data (2 brands for RLS testing) |
-| `docs/schema-erd.md` | ERD + field reference |
-| `supabase/migrations/20260626200001_staff_invites.sql` | Invite tokens + logo storage |
-| `portal/` | Next.js brand portal (Phase 2) |
-| `docs/api-phase2.md` | REST API documentation (auth) |
-| `docs/api-phase3.md` | REST API documentation (challenges) |
-| `docs/api-mobile-phase4.md` | Mobile API for iOS |
-| `docs/openapi-mobile-v1.yaml` | OpenAPI 3.0 spec |
-| `docs/ios-integration-package.md` | **iOS team — complete integration guide** |
-| `docs/ios/CADABrandPartnershipsClient.swift` | Swift protocol + reference client |
-| `docs/qr-integration-guide-ios.md` | iOS QR integration guide |
-| `docs/api-phase7-metrics.md` | Dashboard metrics API + privacy |
-| `docs/api-phase8-bridge.md` | Marketing site → portal bridge |
-| `supabase/migrations/20260626500001_partnership_leads.sql` | Lead capture table |
-| `supabase/migrations/20260626300001_daily_attribution_cap.sql` | One attribution per enrollment per UTC day |
-| `supabase/migrations/20260626400001_qr_reward_fields.sql` | QR user_id, challenge_id, token_ciphertext |
-
-## Schema docs
-
-See [docs/schema-erd.md](docs/schema-erd.md) and [docs/rls-test-cases.md](docs/rls-test-cases.md).
+Early design docs and `supabase/migrations/*.sql` describe a PostgreSQL + RLS approach. **Production runs on Firebase Auth + Firestore** in `portal/`. Treat the SQL migrations and older “Phase 1” Postgres quick-start as historical reference unless you are explicitly reviving that path.
