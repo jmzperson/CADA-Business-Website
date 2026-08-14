@@ -8,10 +8,14 @@ import {
 import { handleApiError } from "@/lib/api";
 import { requireAppUser } from "@/lib/mobile/auth";
 import {
+  durationDaysFromRange,
+  habitDisplayName,
+  type HabitType,
+} from "@/lib/challenges";
+import {
   completionRequired,
   type EnrollmentSummary,
 } from "@/lib/mobile/serialize";
-import type { HabitType } from "@/lib/challenges";
 
 export async function GET(request: Request) {
   try {
@@ -48,11 +52,17 @@ export async function GET(request: Request) {
         completed_at: row.completed_at,
         completion_count: current,
         challenge: {
-          title: challenge?.title ?? "",
-          habit_type: (challenge?.habit_type ?? "custom") as HabitType,
-          offer_headline: challenge?.offer_headline ?? "",
-          offer_code: challenge?.offer_code ?? null,
-          status: challenge?.status ?? "",
+          title: challenge.title,
+          description: challenge.description,
+          habit_type: challenge.habit_type as HabitType,
+          habit_label: habitDisplayName(challenge.habit_type),
+          offer_headline: challenge.offer_headline,
+          offer_code: challenge.offer_code,
+          status: challenge.status,
+          starts_at: challenge.starts_at,
+          ends_at: challenge.ends_at,
+          join_window_days: challenge.join_window_days ?? null,
+          duration_days: durationDaysFromRange(challenge.starts_at, challenge.ends_at),
         },
         brand: {
           id: brand?.id ?? "",

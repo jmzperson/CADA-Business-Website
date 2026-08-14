@@ -10,6 +10,8 @@ import {
 
 export {
   HABIT_TYPES,
+  habitDisplayName,
+  durationDaysFromRange,
   type HabitType,
   type ChallengeStatus,
   type ChallengeRow,

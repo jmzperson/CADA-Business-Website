@@ -1,15 +1,20 @@
 import type { HabitType } from "@/lib/challenges";
+import { durationDaysFromRange, habitDisplayName } from "@/lib/challenges";
 
 export type AvailableChallenge = {
   id: string;
   title: string;
   description: string;
   habit_type: HabitType;
+  /** CADA app library name, e.g. `Gym`. Same string iOS `addHabit` expects. */
+  habit_label: string;
   offer_headline: string;
   offer_code: string | null;
   starts_at: string;
   ends_at: string | null;
   join_window_days?: number | null;
+  /** 1, 7, or 30 when the challenge has an end date; null if open-ended. */
+  duration_days: number | null;
   /** Null when the challenge has no redemption cap. */
   spots_remaining: number | null;
   brand: {
@@ -30,10 +35,16 @@ export type EnrollmentSummary = {
   completion_count: number;
   challenge: {
     title: string;
+    description: string;
     habit_type: HabitType;
+    habit_label: string;
     offer_headline: string;
     offer_code: string | null;
     status: string;
+    starts_at: string;
+    ends_at: string | null;
+    join_window_days: number | null;
+    duration_days: number | null;
   };
   brand: {
     id: string;
@@ -103,11 +114,13 @@ export function serializeAvailableChallenge(
     title: row.title,
     description: row.description,
     habit_type: row.habit_type as HabitType,
+    habit_label: habitDisplayName(row.habit_type),
     offer_headline: row.offer_headline,
     offer_code: row.offer_code,
     starts_at: row.starts_at,
     ends_at: row.ends_at,
     join_window_days: row.join_window_days ?? null,
+    duration_days: durationDaysFromRange(row.starts_at, row.ends_at),
     spots_remaining: spotsRemaining,
     brand: {
       id: row.brands.id,
