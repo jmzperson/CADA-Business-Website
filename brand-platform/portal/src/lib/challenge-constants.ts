@@ -95,6 +95,20 @@ export const HABIT_CATEGORIES: readonly HabitCategory[] = [
 /** Flat list of predefined habits (excludes the Custom UI sentinel). */
 export const HABIT_TYPES: readonly HabitOption[] = HABIT_CATEGORIES.flatMap((c) => [...c.habits]);
 
+/** App library name for a stored habit_type slug (`gym` → `Gym`). Custom labels pass through. */
+export function habitDisplayName(habitType: string): string {
+  return HABIT_TYPES.find((h) => h.value === habitType)?.label ?? habitType;
+}
+
+/** Calendar days between start and end, or null when open-ended / invalid. */
+export function durationDaysFromRange(startsAt: string, endsAt: string | null): number | null {
+  if (!endsAt) return null;
+  const start = new Date(startsAt).getTime();
+  const end = new Date(endsAt).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
+  return Math.max(1, Math.round((end - start) / (24 * 60 * 60 * 1000)));
+}
+
 /** Select value that unlocks the free-text custom habit field. Not stored on challenges. */
 export const CUSTOM_HABIT_VALUE = "custom";
 
