@@ -126,6 +126,30 @@
   .funnel-fill {
     @apply h-full rounded-pill bg-gradient-to-r from-teal to-[#58E0F5] transition-all duration-500;
   }
+
+  .legal-content h2 {
+    @apply mt-8 mb-3 font-display text-lg font-extrabold text-ink;
+  }
+
+  .legal-content h3 {
+    @apply mt-5 mb-2 font-display text-[0.9375rem] font-extrabold text-ink;
+  }
+
+  .legal-content p {
+    @apply mb-3.5 text-[0.9375rem] leading-7 text-ink;
+  }
+
+  .legal-content ul {
+    @apply mb-3.5 list-disc pl-5 text-[0.9375rem] leading-7 text-ink;
+  }
+
+  .legal-content li {
+    @apply mb-1.5;
+  }
+
+  .legal-content a {
+    @apply text-teal underline underline-offset-2 hover:text-teal-dark;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
