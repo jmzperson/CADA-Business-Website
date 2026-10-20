@@ -110,6 +110,12 @@ function LoginForm() {
         <button type="submit" className="btn-primary w-full" disabled={loading}>
           {loading ? "Signing in…" : "Sign in"}
         </button>
+
+        <p className="text-center text-xs text-ink-light">
+          <Link href="/privacy" className="font-display font-extrabold text-teal hover:underline">
+            Privacy Policy
+          </Link>
+        </p>
       </form>
     </AuthShell>
   );
