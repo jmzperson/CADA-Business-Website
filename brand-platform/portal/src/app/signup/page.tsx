@@ -205,6 +205,14 @@ function SignupForm() {
         <button type="submit" className="btn-primary w-full" disabled={loading}>
           {loading ? "Creating account…" : "Create account"}
         </button>
+
+        <p className="text-center text-xs text-ink-light">
+          By creating an account, you agree to our{" "}
+          <Link href="/privacy" className="font-display font-extrabold text-teal hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </form>
     </AuthShell>
   );

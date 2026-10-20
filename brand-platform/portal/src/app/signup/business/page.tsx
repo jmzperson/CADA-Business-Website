@@ -171,6 +171,14 @@ export default function BusinessProfilePage() {
         <button type="submit" className="btn-primary w-full" disabled={loading}>
           {loading ? "Creating profile…" : "Create partner profile"}
         </button>
+
+        <p className="text-center text-xs text-ink-light">
+          By continuing, you agree to our{" "}
+          <Link href="/privacy" className="font-display font-extrabold text-teal hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </form>
     </AuthShell>
   );
